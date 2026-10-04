@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "phygrec"
+version = "1.0.0"
+description = "PhyGRec: physics-guided graph recovery for spatial transcriptomics"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=2.0",
+    "torch>=2.6",
+    "torch_geometric>=2.0",
+    "lightning>=2.0",
+    "jsonargparse[signatures]>=4.27.7",
+    "h5py>=3.8",
+    "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+structure = ["scikit-learn==1.9.0", "scanpy==1.12.3", "leidenalg==0.12.0"]
+
+[project.scripts]
+phygrec-cli = "phygrec.cli.main:main"
+phygrec-reproduce = "phygrec.reproduction:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+phygrec = ["resources/structure/*.npz", "resources/structure/manifest.json"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]

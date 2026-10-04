@@ -1,0 +1,48 @@
+seed_everything: 20260816
+model:
+  ablation: none
+  solver_lr: 0.003125
+  circle_lr: 0.06
+  aim_lr: 0.003
+  gcc_lr: 0.01
+data:
+  seed: 20260816
+  num_workers: 4
+  pin_memory: true
+  persistent_workers: true
+  shared_scene_store: ../phygrec-data/benchmark/main/train.h5
+trainer:
+  accelerator: gpu
+  devices: 1
+  max_steps: -1
+  max_epochs: 100
+  deterministic: true
+  benchmark: false
+  limit_val_batches: 0
+  num_sanity_val_steps: 0
+  log_every_n_steps: 1
+  default_root_dir: runs/main/seed20260816/training
+  callbacks:
+  - class_path: lightning.pytorch.callbacks.ModelCheckpoint
+    init_args:
+      dirpath: runs/main/seed20260816/checkpoints
+      filename: step-{step:05d}
+      monitor: null
+      save_top_k: 1
+      save_last: true
+      every_n_train_steps: 6100
+      save_on_train_epoch_end: false
+  - class_path: phygrec.callbacks.periodic_shared_scene_dev.PeriodicSharedSceneDevCallback
+    init_args:
+      run_name: phygrec_full_seed20260816
+      output_root: runs/main/seed20260816/dev
+      store_root: ../phygrec-data/benchmark/main
+      interval_epochs: 10
+      steps_per_epoch: 61
+      workers: 4
+  logger:
+    class_path: lightning.pytorch.loggers.CSVLogger
+    init_args:
+      save_dir: runs/main/seed20260816/logs
+      name: logs
+      version: run
