@@ -47,6 +47,7 @@ python scripts/reproduce.py --experiment ablation
 
 ### Annotation and clustering
 
+Annotation and clustering scoring require Python 3.12 or newer.
 Install the additional scoring dependencies, then add `--structure` to any
 published experiment (main, LOCO or ablation):
 
@@ -220,7 +221,10 @@ ablated LOCO rows cannot enter the fold average.
 | `modulation.py`, `graph_corrector.py` | AIM and GCC |
 | `solver.py`, `model.py`, `losses.py` | Unrolled recovery, training, EMA and objective |
 | `data/`, `model_input.py` | Scene packing and observable-input boundary |
-| `evaluation.py`, `selection.py`, `reproduction.py` | Metrics and experiment workflow |
+| `expression_metrics.py`, `results.py` | Shared expression metrics and summaries across seeds/folds |
+| `evaluation.py`, `selection.py`, `reproduction.py` | Test evaluation, validation selection and PhyGRec experiment workflow |
+| `baselines/gnn.py`, `baselines/vae.py`, `baselines/physical.py` | Seven fixed comparison models and their numerical operators |
+| `baselines/runner.py`, `baselines/cli.py` | Baseline training/evaluation and command-line dispatch |
 | `structure_evaluation.py`, `structure_metrics.py`, `resources/structure/` | Frozen physical-cell cohorts, annotation and clustering scoring |
 | `verification.py`, `callbacks/` | Benchmark integrity and periodic validation snapshots |
 | `checkpoints.py` | Public checkpoint parameter and format validation |

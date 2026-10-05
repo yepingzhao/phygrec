@@ -1,36 +1,13 @@
 """Frozen circle geometry and fixed projected-gradient inversion."""
 
 from __future__ import annotations
+
+from typing import Any
 import numpy as np
 import torch
 from torch import nn
 from phygrec.operators import _intersection_fraction, graph_prediction
 
-def fixed_distance_fraction(distance: torch.Tensor, candidate_mask: torch.Tensor, prior_scale: float=0.5, distance_temperature: float=1.0) -> torch.Tensor:
-    """Fixed geometric prior fraction, replicating graph_builder's kernel.
-
-    Per observation row: ``prior_scale * exp(-delta / (T * scale))`` where
-    ``delta`` is distance from the row minimum and ``scale`` is the median of
-    the up-to-7 smallest positive deltas (floor 1.0). Zero outside the mask.
-    """
-    if distance.shape != candidate_mask.shape:
-        raise ValueError('distance and candidate_mask shapes must match')
-    effective_mask = candidate_mask & torch.isfinite(distance)
-    clamped = torch.where(effective_mask, distance.clamp_min(0.0), torch.zeros_like(distance))
-    row_min = torch.where(effective_mask, clamped, torch.full_like(clamped, float('inf'))).min(dim=1, keepdim=True).values
-    delta = clamped - row_min
-    masked_delta = torch.where(effective_mask & (delta > 0.0), delta, torch.full_like(delta, float('inf')))
-    sorted_delta, _ = torch.sort(masked_delta, dim=1)
-    local = sorted_delta[:, :7]
-    finite_count = torch.isfinite(local).sum(dim=1)
-    index = torch.arange(local.shape[0], device=distance.device)
-    mid = finite_count // 2
-    upper = torch.clamp(mid, max=6)
-    lower = torch.clamp(mid - 1, min=0, max=6)
-    median = torch.where((finite_count % 2 == 1) & (finite_count > 0), local[index, upper], torch.where(finite_count > 0, (local[index, lower] + local[index, upper]) / 2.0, torch.ones_like(upper, dtype=local.dtype)))
-    scale = median.clamp_min(1.0)
-    score = torch.exp(-delta / (float(distance_temperature) * scale.unsqueeze(1)))
-    return torch.where(effective_mask, float(prior_scale) * score, torch.zeros_like(score))
 
 class FittedCircleOperator(nn.Module):
     """Four-parameter approximation to contour-overlap crosstalk.
@@ -98,7 +75,7 @@ class FittedCircleOperator(nn.Module):
         fraction = fraction * row_scale[:, None]
         return (fraction, fraction.sum(dim=1))
 
-def physical_solve(batch: dict[str, Any], fraction: torch.Tensor, step: float, iterations: int) -> tuple[torch.Tensor, torch.Tensor]:
+def solve_physical_pgd(batch: dict[str, Any], fraction: torch.Tensor, step: float, iterations: int) -> tuple[torch.Tensor, torch.Tensor]:
     source, donors, mask = (batch['source'], batch['donors'], batch['candidate_mask'])
     profile = batch['initial'].clone()
     degree = torch.zeros(len(profile), device=profile.device)
@@ -119,6 +96,3 @@ def physical_solve(batch: dict[str, Any], fraction: torch.Tensor, step: float, i
                 grad.index_add_(0, donors[m, slot], residual[m] * fraction[m, slot].unsqueeze(-1))
         profile = torch.relu(profile - step * grad / degree)
     return (profile, graph_prediction(profile, source, donors, fraction, mask))
-
-def graph_fraction(graph: dict, prior_scale: float = 0.5, distance_temperature: float = 1.0) -> torch.Tensor:
-    return fixed_distance_fraction(graph['distance'], graph['candidate_mask'], prior_scale, distance_temperature)

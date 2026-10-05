@@ -4,7 +4,8 @@ import pytest
 import torch
 
 from phygrec.baselines import runner
-from phygrec.baselines.physical import FittedCircleOperator, physical_solve
+from phygrec.protocol import SEEDS
+from phygrec.baselines.physical import FittedCircleOperator, solve_physical_pgd
 from phygrec.data.shared_scene_graphs import pack_scene_graphs
 from test_shared_scene_graphs import _write_store
 
@@ -36,7 +37,7 @@ def graph():
     ("gcn", 1553896), ("mpnn", 6777256), ("vae", 1604648), ("physical_pgd", 4),
 ])
 def test_final_models_are_target_free_and_have_finite_gradients(method, count):
-    model = runner.BaselinePrediction(method)
+    model = runner.BaselinePredictor(method)
     assert sum(p.numel() for p in model.parameters()) == count
     batch = graph()
     model.eval()
@@ -47,7 +48,7 @@ def test_final_models_are_target_free_and_have_finite_gradients(method, count):
     assert torch.isfinite(first).all() and (first >= 0).all()
     if method != "physical_pgd":
         model.train()
-        loss = runner.objective(model, model(batch), batch)
+        loss = runner.baseline_loss(model, model(batch), batch)
         loss.backward()
         assert torch.isfinite(loss)
         assert all(p.grad is not None and torch.isfinite(p.grad).all() for p in model.parameters())
@@ -60,7 +61,7 @@ def test_physical_fit_and_diagonal_pgd_use_only_fixed_operator():
     assert all(p.grad is not None and torch.isfinite(p.grad).all() for p in operator.parameters())
     batch = graph()
     batch["mixed"] = batch["initial"][batch["source"]].clone()
-    prediction, _ = physical_solve(batch, torch.zeros_like(batch["distance"]), .1, 100)
+    prediction, _ = solve_physical_pgd(batch, torch.zeros_like(batch["distance"]), .1, 100)
     assert torch.equal(prediction, batch["initial"])
 
 
@@ -76,7 +77,7 @@ def test_configs_cannot_silently_change_the_recorded_architecture(tmp_path, monk
 def test_training_selects_earliest_validation_tie_and_test_is_separate(tmp_path, monkeypatch):
     directory = tmp_path / "benchmark"
     directory.mkdir()
-    # This small store exercises the real loader and loop; the toy model uses two genes.
+    # This small store exercises the real make_scene_loader and loop; the toy model uses two genes.
     for split in ("train", "val"):
         _write_store(directory / f"{split}.h5")
     monkeypatch.setattr(runner, "ROOT", tmp_path)
@@ -94,16 +95,16 @@ def test_training_selects_earliest_validation_tie_and_test_is_separate(tmp_path,
         def forward(self, batch):
             return self.scale * batch["initial"]
 
-    monkeypatch.setattr(runner, "BaselinePrediction", lambda _: Toy())
+    monkeypatch.setattr(runner, "BaselinePredictor", lambda _: Toy())
     scores = iter([{"combined_recovery": .5}, {"combined_recovery": .5}])
-    monkeypatch.setattr(runner, "validation_score", lambda *_: next(scores))
-    checkpoint = runner.train("gcn", "main", runner.SEEDS[0], "cpu", 0)
+    monkeypatch.setattr(runner, "evaluate_validation", lambda *_: next(scores))
+    checkpoint = runner.train("gcn", "main", SEEDS[0], "cpu", 0)
     raw = torch.load(checkpoint, weights_only=True)
     assert raw["epoch"] == 1 and raw["selection_split"] == "val_only"
     assert not (directory / "test.h5").exists()
     assert len((checkpoint.parent / "history.jsonl").read_text().splitlines()) == 2
     with pytest.raises(FileExistsError):
-        runner.train("gcn", "main", runner.SEEDS[0], "cpu", 0)
+        runner.train("gcn", "main", SEEDS[0], "cpu", 0)
 
 
 def test_observation_expression_survives_scene_packing(tmp_path):

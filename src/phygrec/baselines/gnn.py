@@ -5,10 +5,40 @@ import torch
 from torch import nn
 import torch_geometric.nn as pyg_nn
 from torch_geometric.data import Data
-from phygrec.baselines.physical import graph_fraction
 
-def _build_source_source_graph(graph: dict, node_features: torch.Tensor | None=None) -> Data:
-    """Build graph with source-source and donor-source edges."""
+def fixed_distance_fraction(distance: torch.Tensor, candidate_mask: torch.Tensor, prior_scale: float=0.5, distance_temperature: float=1.0) -> torch.Tensor:
+    """Fixed geometric prior fraction, replicating graph_builder's kernel.
+
+    Per observation row: ``prior_scale * exp(-delta / (T * scale))`` where
+    ``delta`` is distance from the row minimum and ``scale`` is the median of
+    the up-to-7 smallest positive deltas (floor 1.0). Zero outside the mask.
+    """
+    if distance.shape != candidate_mask.shape:
+        raise ValueError('distance and candidate_mask shapes must match')
+    effective_mask = candidate_mask & torch.isfinite(distance)
+    clamped = torch.where(effective_mask, distance.clamp_min(0.0), torch.zeros_like(distance))
+    row_min = torch.where(effective_mask, clamped, torch.full_like(clamped, float('inf'))).min(dim=1, keepdim=True).values
+    delta = clamped - row_min
+    masked_delta = torch.where(effective_mask & (delta > 0.0), delta, torch.full_like(delta, float('inf')))
+    sorted_delta, _ = torch.sort(masked_delta, dim=1)
+    local = sorted_delta[:, :7]
+    finite_count = torch.isfinite(local).sum(dim=1)
+    index = torch.arange(local.shape[0], device=distance.device)
+    mid = finite_count // 2
+    upper = torch.clamp(mid, max=6)
+    lower = torch.clamp(mid - 1, min=0, max=6)
+    median = torch.where((finite_count % 2 == 1) & (finite_count > 0), local[index, upper], torch.where(finite_count > 0, (local[index, lower] + local[index, upper]) / 2.0, torch.ones_like(upper, dtype=local.dtype)))
+    scale = median.clamp_min(1.0)
+    score = torch.exp(-delta / (float(distance_temperature) * scale.unsqueeze(1)))
+    return torch.where(effective_mask, float(prior_scale) * score, torch.zeros_like(score))
+
+
+def graph_fraction(graph: dict, prior_scale: float = 0.5, distance_temperature: float = 1.0) -> torch.Tensor:
+    return fixed_distance_fraction(graph['distance'], graph['candidate_mask'], prior_scale, distance_temperature)
+
+
+def _build_candidate_graph(graph: dict, node_features: torch.Tensor | None=None) -> Data:
+    """Build the undirected observable receiver/donor candidate graph."""
     donors, donor_mask, source = (graph['donors'], graph['candidate_mask'], graph['source'])
     edge_pairs = set()
     for slot in range(donors.shape[1]):
@@ -28,7 +58,7 @@ def _build_source_source_graph(graph: dict, node_features: torch.Tensor | None=N
     return Data(x=graph['initial'] if node_features is None else node_features, edge_index=edge_index)
 
 class GATBaseline(nn.Module):
-    """Graph Attention Network over source-source + donor-source graph."""
+    """Graph Attention Network over the observable candidate graph."""
 
     def __init__(self) -> None:
         n_genes = 1000
@@ -56,7 +86,7 @@ class GATBaseline(nn.Module):
         self.head = nn.Linear(hidden, n_genes)
 
     def forward(self, graph: dict) -> tuple[torch.Tensor, torch.Tensor]:
-        data = _build_source_source_graph(graph)
+        data = _build_candidate_graph(graph)
         if data.edge_index.numel() == 0:
             pred_clean = graph['initial'].clone()
         else:
@@ -156,7 +186,7 @@ class _GraphConvBaselineBase(nn.Module):
 
     def forward(self, graph: dict) -> tuple[torch.Tensor, torch.Tensor]:
         node_features = graph['initial']
-        data = _build_source_source_graph(graph, node_features)
+        data = _build_candidate_graph(graph, node_features)
         if data.edge_index.numel() == 0:
             pred_clean = graph['initial'].clone()
         else:
@@ -206,8 +236,6 @@ class GATv2Baseline(_GraphConvBaselineBase):
         hidden = 256
         heads = 4
         n_layers = 2
-        prior_scale = 0.5
-        distance_temperature = 1.0
         dropout = 0.0
         self.heads = int(heads)
         self.dropout = float(dropout)

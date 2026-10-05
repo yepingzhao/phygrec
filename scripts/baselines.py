@@ -1,6 +1,6 @@
 """Published baseline training and evaluation entry point."""
 
-from phygrec.baselines.runner import main
+from phygrec.baselines.cli import main
 
 
 if __name__ == "__main__":

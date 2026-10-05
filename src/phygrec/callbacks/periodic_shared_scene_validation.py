@@ -11,7 +11,7 @@ from lightning.pytorch.callbacks import Callback
 
 
 from phygrec.data.hashing import sha256_file
-from phygrec.evaluation import evaluate_val
+from phygrec.evaluation import evaluate_validation
 from phygrec.protocol import ROOT as REPOSITORY_ROOT
 
 
@@ -92,7 +92,7 @@ class PeriodicSharedSceneValidationCallback(Callback):
         was_training = pl_module.training
         pl_module.eval()
         try:
-            val = evaluate_val(
+            val = evaluate_validation(
                 pl_module,
                 REPOSITORY_ROOT / self.store_root,
                 device=pl_module.device,

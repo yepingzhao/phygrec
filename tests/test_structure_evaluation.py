@@ -6,8 +6,10 @@ import pytest
 pytest.importorskip("scanpy", reason="Install the structure extra for downstream scoring tests")
 pytest.importorskip("leidenalg", reason="Install the structure extra for downstream scoring tests")
 
-from phygrec.reproduction import METRICS, run, summarize_results
-from phygrec.structure_evaluation import CellTotals, STRUCTURE_METRICS, load_reference
+from phygrec.reproduction import run
+from phygrec.results import EXPRESSION_METRICS, summarize_results
+from phygrec.structure_evaluation import PhysicalCellAccumulator, load_reference
+from phygrec.results import STRUCTURE_METRICS
 from phygrec.structure_metrics import (
     CLASS_ORDER, MARKER_PROGRAMS, annotation_metric_record, annotation_protocol,
     clustering_metrics, independent_pca,
@@ -27,7 +29,7 @@ def profiles():
 def test_raw_identity_means_exclude_only_zero_reference(monkeypatch):
     reference = {"ids": np.asarray(["b", "a"]), "genes": np.asarray(["g1", "g2"])}
     monkeypatch.setattr("phygrec.structure_evaluation.load_reference", lambda *args: (reference, {}))
-    total = CellTotals("main", reference["genes"])
+    total = PhysicalCellAccumulator("main", reference["genes"])
     labels = np.asarray(["a", "b", "a", "zero"])
     clean = np.asarray([[2, 4], [3, 6], [2, 4], [0, 0]], dtype=np.float32)
     prediction = np.asarray([[1, 2], [3, 4], [9, 4], [1, 1]], dtype=np.float32)
@@ -43,7 +45,7 @@ def test_raw_identity_means_exclude_only_zero_reference(monkeypatch):
 def test_missing_physical_cells_cannot_change_the_scored_cohort(monkeypatch):
     ref = {"ids": np.asarray(["a", "b"]), "genes": np.asarray(["g"])}
     monkeypatch.setattr("phygrec.structure_evaluation.load_reference", lambda *args: (ref, {}))
-    totals = CellTotals("main", ref["genes"])
+    totals = PhysicalCellAccumulator("main", ref["genes"])
     totals.update(np.asarray(["a"]), np.ones((1, 1)), np.ones((1, 1)), np.ones((1, 1)))
     with pytest.raises(ValueError, match="Missing receiver"):
         totals.means()
@@ -86,7 +88,7 @@ def test_structure_fold_mean_precedes_training_seed_sd():
     results = []
     for seed, values in ((1, (0, 3, 6)), (2, (6, 9, 12)), (3, (12, 15, 18))):
         for split, value in zip(("a9", "l7", "na"), values):
-            results.append({"split": split, "seed": seed, **dict.fromkeys(METRICS, value),
+            results.append({"split": split, "seed": seed, **dict.fromkeys(EXPRESSION_METRICS, value),
                             "structure": {"states": {state: dict.fromkeys(STRUCTURE_METRICS, value if state == "prediction" else 1)
                                                       for state in ("reference", "mixed", "prediction")}}})
     scores = summarize_results(results)["loco"]["structure"]

@@ -2,11 +2,12 @@
 
 import pytest
 
-from phygrec.reproduction import METRICS, run, summarize_results
+from phygrec.reproduction import run
+from phygrec.results import EXPRESSION_METRICS, summarize_results
 
 
 def row(split, seed, value):
-    return {"split": split, "seed": seed, **dict.fromkeys(METRICS, value)}
+    return {"split": split, "seed": seed, **dict.fromkeys(EXPRESSION_METRICS, value)}
 
 
 def test_loco_averages_folds_before_sample_standard_deviation():

@@ -16,12 +16,6 @@ from phygrec.protocol import SPLITS
 
 
 RESOURCES = Path(__file__).parent / "resources/structure"
-STRUCTURE_METRICS = (
-    "accuracy", "macro_precision", "balanced_accuracy", "macro_f1", "mcc",
-    "cohen_kappa", "macro_average_precision", "source_agreement_ari",
-    "source_agreement_nmi", "leiden_stability_ari", "frozen_label_silhouette_20pc",
-    "leiden_clusters",
-)
 
 
 def load_reference(split: str, genes: np.ndarray) -> tuple[dict, dict]:
@@ -38,7 +32,7 @@ def load_reference(split: str, genes: np.ndarray) -> tuple[dict, dict]:
     return reference, metadata
 
 
-class CellTotals:
+class PhysicalCellAccumulator:
     """Accumulate raw float64 sums, then cast identity means to float32."""
 
     def __init__(self, split: str, genes: np.ndarray) -> None:
@@ -121,7 +115,7 @@ def evaluate_cells(cells: dict, split: str) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--split", choices=SPLITS, required=True)
-    parser.add_argument("--cells", type=Path, required=True, help="Identity means exported by CellTotals")
+    parser.add_argument("--cells", type=Path, required=True, help="Identity means exported by PhysicalCellAccumulator")
     args = parser.parse_args()
     with np.load(args.cells, allow_pickle=False) as bank:
         cells = {key: bank[key] for key in ("ids", "genes", "clean", "mixed", "prediction")}
