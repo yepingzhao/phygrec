@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import PurePosixPath
 
 import h5py
 
@@ -10,6 +11,12 @@ from phygrec.data.hashing import sha256_file
 
 
 from phygrec.protocol import DATA
+
+
+def verify_scene_split_metadata(handle: h5py.File, split: str) -> None:
+    for scene in handle["scenes"].values():
+        if PurePosixPath(scene.attrs["candidate_shard"]).parent.name != split:
+            raise ValueError(f"Scene split metadata mismatch: {handle.filename}/{scene.name}")
 
 
 def verify_split_isolation() -> None:
@@ -22,6 +29,7 @@ def verify_split_isolation() -> None:
         gene_panels = {}
         for split in ("train", "val", "test"):
             with h5py.File(directory / f"{split}.h5") as handle:
+                verify_scene_split_metadata(handle, split)
                 source_labels = handle["nodes/source_label"].asstr()[:].tolist()
                 if len(source_labels) != len(set(source_labels)):
                     raise ValueError(f"Duplicate source identity: {fold}/{split}")

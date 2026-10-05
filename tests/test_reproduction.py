@@ -9,7 +9,7 @@ def row(split, seed, value):
     return {"split": split, "seed": seed, **dict.fromkeys(METRICS, value)}
 
 
-def test_loco_averages_folds_before_sample_standard_valiation():
+def test_loco_averages_folds_before_sample_standard_deviation():
     results = [row(split, seed, value)
                for seed, values in ((1, (0, 3, 6)), (2, (6, 9, 12)), (3, (12, 15, 18)))
                for split, value in zip(("a9", "l7", "na"), values)]
@@ -24,7 +24,7 @@ def test_partial_loco_cannot_silently_change_fold_weights():
 
 
 @pytest.mark.parametrize("split,variant", [
-    ("development_probe", None), ("main", "gain_only"), ("a9", "rb"),
+    ("validation_probe", None), ("main", "gain_only"), ("a9", "rb"),
 ])
 def test_unpublished_result_identity_is_rejected(split, variant):
     with pytest.raises(ValueError, match="result identity"):

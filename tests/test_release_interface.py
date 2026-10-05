@@ -43,7 +43,7 @@ def test_unpublished_branch_combination_is_rejected():
         PhyGRecModule(ablation="rb+gcc")
 
 
-def test_valelopment_checkpoint_is_rejected():
+def test_exploration_model_checkpoint_is_rejected():
     with pytest.raises(ValueError, match="public PhyGRec model parameters"):
         release_hyperparameters({"learned_preconditioner": True, "graph_corrector": True})
     model = PhyGRecModule()
