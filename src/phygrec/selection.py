@@ -1,4 +1,4 @@
-"""Select a PhyGRec checkpoint using development recovery only."""
+"""Select a PhyGRec checkpoint using validation recovery only."""
 
 from __future__ import annotations
 
@@ -21,20 +21,20 @@ def select_checkpoint(
 
     run_group = Path("ablation") / variant if variant else Path(split)
     name = variant or ("full" if split == "main" else split)
-    run = root / "runs" / run_group / f"seed{seed}" / "dev" / "runs" / f"phygrec_{name}_seed{seed}"
-    scores = sorted(run.glob("dev_epoch_*.json"))
+    run = root / "runs" / run_group / f"seed{seed}" / "val" / "runs" / f"phygrec_{name}_seed{seed}"
+    scores = sorted(run.glob("val_epoch_*.json"))
     if not scores:
-        raise FileNotFoundError(f"No development scores found under {run}")
+        raise FileNotFoundError(f"No validation scores found under {run}")
 
     candidates = []
     for path in scores:
         report = json.loads(path.read_text())
-        if report["selection_split"] != "dev_only":
+        if report["selection_split"] != "val_only":
             raise ValueError(f"Invalid selection split: {path}")
         epoch = int(report["checkpoint"]["completed_epochs"])
-        score = float(report["dev"]["overall"]["combined_recovery"])
+        score = float(report["val"]["overall"]["combined_recovery"])
         if not math.isfinite(score):
-            raise ValueError(f"Non-finite development score: {path}")
+            raise ValueError(f"Non-finite validation score: {path}")
         checkpoint = root / report["checkpoint"]["path"]
         if not checkpoint.is_file():
             raise FileNotFoundError(checkpoint)
@@ -44,7 +44,7 @@ def select_checkpoint(
     result = {
         "seed": seed,
         "selected_epoch": epoch,
-        "dev_combined_recovery": score,
+        "val_combined_recovery": score,
         "checkpoint": str(checkpoint.relative_to(root)),
         "score_report": str(source.relative_to(root)),
     }

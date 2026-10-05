@@ -9,7 +9,7 @@ def row(split, seed, value):
     return {"split": split, "seed": seed, **dict.fromkeys(METRICS, value)}
 
 
-def test_loco_averages_folds_before_sample_standard_deviation():
+def test_loco_averages_folds_before_sample_standard_valiation():
     results = [row(split, seed, value)
                for seed, values in ((1, (0, 3, 6)), (2, (6, 9, 12)), (3, (12, 15, 18)))
                for split, value in zip(("a9", "l7", "na"), values)]

@@ -20,21 +20,21 @@ def verify_split_isolation() -> None:
         )
         labels = {}
         gene_panels = {}
-        for split in ("train", "dev", "test"):
+        for split in ("train", "val", "test"):
             with h5py.File(directory / f"{split}.h5") as handle:
                 source_labels = handle["nodes/source_label"].asstr()[:].tolist()
                 if len(source_labels) != len(set(source_labels)):
                     raise ValueError(f"Duplicate source identity: {fold}/{split}")
                 labels[split] = set(source_labels)
                 gene_panels[split] = tuple(handle["nodes/gene"].asstr()[:])
-        if labels["train"] & labels["dev"] or labels["train"] & labels["test"] or labels["dev"] & labels["test"]:
+        if labels["train"] & labels["val"] or labels["train"] & labels["test"] or labels["val"] & labels["test"]:
             raise ValueError(f"Source identity crosses splits: {fold}")
         if len(set(gene_panels.values())) != 1 or gene_panels["train"] != tuple(
             (directory / "genes.txt").read_text().splitlines()
         ):
             raise ValueError(f"Gene panel mismatch: {fold}")
         if heldout_chip is not None:
-            for split in ("train", "dev"):
+            for split in ("train", "val"):
                 if any(label.startswith(f"{heldout_chip}_") for label in labels[split]):
                     raise ValueError(f"Held-out chip enters {fold}/{split}")
 

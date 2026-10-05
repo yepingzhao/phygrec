@@ -51,7 +51,7 @@ class SceneBatchSampler(Sampler[list[int]]):
 
 
 class GraphDataModule(LightningDataModule):
-    """Load the training store; keep development and test stores sealed."""
+    """Load the training store; keep validation and test stores sealed."""
 
     def __init__(
         self,

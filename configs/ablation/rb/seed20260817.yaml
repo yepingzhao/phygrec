@@ -32,10 +32,10 @@ trainer:
       save_last: true
       every_n_train_steps: 6100
       save_on_train_epoch_end: false
-  - class_path: phygrec.callbacks.periodic_shared_scene_dev.PeriodicSharedSceneDevCallback
+  - class_path: phygrec.callbacks.periodic_shared_scene_validation.PeriodicSharedSceneValidationCallback
     init_args:
       run_name: phygrec_rb_seed20260817
-      output_root: runs/ablation/rb/seed20260817/dev
+      output_root: runs/ablation/rb/seed20260817/val
       store_root: ../phygrec-data/benchmark/main
       interval_epochs: 10
       steps_per_epoch: 61

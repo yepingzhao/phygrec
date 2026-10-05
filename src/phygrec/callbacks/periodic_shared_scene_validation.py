@@ -1,4 +1,4 @@
-"""In-Trainer exact micro-averaged evaluation for shared-scene dev stores."""
+"""In-Trainer exact micro-averaged evaluation for shared-scene val stores."""
 
 from __future__ import annotations
 
@@ -11,12 +11,12 @@ from lightning.pytorch.callbacks import Callback
 
 
 from phygrec.data.hashing import sha256_file
-from phygrec.evaluation import evaluate_dev
+from phygrec.evaluation import evaluate_val
 from phygrec.protocol import ROOT as REPOSITORY_ROOT
 
 
-class PeriodicSharedSceneDevCallback(Callback):
-    """Evaluate exact receiver-entry dev recovery without restarting Trainer."""
+class PeriodicSharedSceneValidationCallback(Callback):
+    """Evaluate exact receiver-entry val recovery without restarting Trainer."""
 
     def __init__(
         self,
@@ -75,24 +75,24 @@ class PeriodicSharedSceneDevCallback(Callback):
         actual_step = int(pl_module.optimizer_update_count.detach().cpu().item())
         if actual_step != expected_step:
             raise ValueError(
-                "periodic dev optimizer-update mismatch: "
+                "periodic val optimizer-update mismatch: "
                 f"epoch={completed_epochs}, expected={expected_step}, "
                 f"actual={actual_step}, lightning_global_step={trainer.global_step}"
             )
         if completed_epochs % self.interval_epochs != 0:
             return
-        score_path = self.run_root / f"dev_epoch_{completed_epochs:03d}.json"
+        score_path = self.run_root / f"val_epoch_{completed_epochs:03d}.json"
         checkpoint_dir = self.run_root / "checkpoints"
         checkpoint_dir.mkdir(parents=True, exist_ok=True)
         snapshot = checkpoint_dir / f"epoch_{completed_epochs:03d}.ckpt"
         if snapshot.exists() or score_path.exists():
-            raise FileExistsError(f"development point already exists: {score_path}, {snapshot}")
+            raise FileExistsError(f"validation point already exists: {score_path}, {snapshot}")
         trainer.save_checkpoint(snapshot)
         audit = self._checkpoint_audit(snapshot, completed_epochs, expected_step)
         was_training = pl_module.training
         pl_module.eval()
         try:
-            dev = evaluate_dev(
+            val = evaluate_val(
                 pl_module,
                 REPOSITORY_ROOT / self.store_root,
                 device=pl_module.device,
@@ -101,19 +101,19 @@ class PeriodicSharedSceneDevCallback(Callback):
         finally:
             pl_module.train(was_training)
         payload = {
-            "protocol": "periodic_shared_scene_dev_intrainer_v1",
+            "protocol": "periodic_shared_scene_validation_intrainer_v1",
             "run_name": self.run_name,
             "training_schedule": {"total_epochs": int(trainer.max_epochs)},
-            "selection_split": "dev_only",
+            "selection_split": "val_only",
             "validation_execution": "lightning_callback_same_trainer_process",
-            "dev_interval_epochs": self.interval_epochs,
+            "val_interval_epochs": self.interval_epochs,
             "evaluation_batching": {
                 "graph_batch_size": 6,
                 "collate": "packed_disconnected_scene_graphs",
                 "aggregation": "receiver_cell_scene_entry_micro",
             },
             "checkpoint": audit,
-            "dev": dev,
+            "val": val,
             "device": str(pl_module.device),
             "python": platform.python_version(),
             "torch": torch.__version__,
@@ -124,8 +124,8 @@ class PeriodicSharedSceneDevCallback(Callback):
         if trainer.logger is not None:
             trainer.logger.log_metrics(
                 {
-                    "dev_micro/combined_recovery": float(
-                        dev["overall"]["combined_recovery"]
+                    "val_micro/combined_recovery": float(
+                        val["overall"]["combined_recovery"]
                     ),
                 },
                 step=int(trainer.global_step),

@@ -13,7 +13,7 @@ FORMAT = "dacc_shared_scene_graphs_v1"
 
 
 _NODE_TENSOR_KEYS = ("clean", "initial", "train_mask")
-_OBSERVATION_TENSOR_KEYS = ("distance", "candidate_mask")
+_OBSERVATION_TENSOR_KEYS = ("mixed", "distance", "candidate_mask")
 
 
 def pack_scene_graphs(graphs: list[dict]) -> dict:
@@ -152,6 +152,7 @@ class SharedSceneGraphDataset(torch.utils.data.Dataset):
             "scene_id": scene_id,
             "combination": combination,
             "clean": torch.from_numpy(clean).float(),
+            "mixed": torch.from_numpy(mixed).float(),
             "source": torch.from_numpy(source).long(),
             "donors": torch.from_numpy(donors).long(),
             "initial": torch.from_numpy(initial).float(),

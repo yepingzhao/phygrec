@@ -1,4 +1,4 @@
-"""Receiver-scene expression metrics for development and held-out test data."""
+"""Receiver-scene expression metrics for validation and held-out test data."""
 
 from __future__ import annotations
 
@@ -93,9 +93,9 @@ class Totals:
 
 
 @torch.inference_mode()
-def evaluate_dev(module, store_root: Path, *, device: torch.device,
+def evaluate_val(module, store_root: Path, *, device: torch.device,
                  workers: int) -> dict:
-    store = store_root / "dev.h5"
+    store = store_root / "val.h5"
     dataset = SharedSceneGraphDataset(store)
     loader = DataLoader(dataset, batch_size=6, shuffle=False,
                         collate_fn=pack_scene_graphs, num_workers=workers,
@@ -125,13 +125,11 @@ def evaluate_dev(module, store_root: Path, *, device: torch.device,
     }
 
 
-def evaluate(split: str, seed: int, device_name: str,
-             checkpoint_path: Path | None = None, *, structure: bool = False) -> dict:
-    checkpoint = checkpoint_path or DATA / f"checkpoints/{split}/seed{seed}.ckpt"
+def evaluate_model(model, split: str, seed: int, device_name: str, *,
+                   structure: bool = False, batch_size: int = 6, baseline: bool = False) -> dict:
     device = torch.device(device_name)
-    model = PhyGRecModule.load_from_checkpoint(str(checkpoint), map_location="cpu").to(device).eval()
     dataset = SharedSceneGraphDataset(benchmark_directory(split) / "test.h5")
-    loader = DataLoader(dataset, batch_size=6, shuffle=False,
+    loader = DataLoader(dataset, batch_size=batch_size, shuffle=False,
                         collate_fn=pack_scene_graphs, num_workers=0)
     overall = Totals()
     labels_seen: set[str] = set()
@@ -144,7 +142,7 @@ def evaluate(split: str, seed: int, device_name: str,
         for cpu in loader:
             batch = {key: value.to(device) if torch.is_tensor(value) else value
                      for key, value in cpu.items()}
-            prediction = model(build_compliant_model_input(batch))
+            prediction = model(batch if baseline else build_compliant_model_input(batch))
             source = batch["source"]
             labels = np.asarray(batch["labels"])[source.cpu().numpy()].astype(str)
             scene_ids = np.asarray(batch["scene_id"])[batch["observation_graph_index"].cpu().numpy()]
@@ -185,6 +183,13 @@ def evaluate(split: str, seed: int, device_name: str,
         from phygrec.structure_evaluation import score_cells
         result["structure"] = score_cells(cells.means(), split)
     return result
+
+
+def evaluate(split: str, seed: int, device_name: str,
+             checkpoint_path: Path | None = None, *, structure: bool = False) -> dict:
+    checkpoint = checkpoint_path or DATA / f"checkpoints/{split}/seed{seed}.ckpt"
+    model = PhyGRecModule.load_from_checkpoint(str(checkpoint), map_location="cpu").to(device_name).eval()
+    return evaluate_model(model, split, seed, device_name, structure=structure)
 
 
 def main() -> None:

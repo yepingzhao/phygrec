@@ -1,4 +1,4 @@
-"""Run the published training, development selection and test sequence."""
+"""Run the published training, validation selection and test sequence."""
 
 from __future__ import annotations
 
@@ -113,8 +113,8 @@ def run(experiment: str, seeds: list[int], *, evaluate_only: bool = False,
             commands = []
             if not evaluate_only:
                 commands.append([sys.executable, "-m", "phygrec.cli.main", "fit", "--config", config])
-            checkpoint = str(DATA / f"checkpoints/{split}/seed{seed}.ckpt") if evaluate_only and not variant else "<dev-selected checkpoint>"
-            if checkpoint == "<dev-selected checkpoint>":
+            checkpoint = str(DATA / f"checkpoints/{split}/seed{seed}.ckpt") if evaluate_only and not variant else "<val-selected checkpoint>"
+            if checkpoint == "<val-selected checkpoint>":
                 commands.append([sys.executable, "scripts/select_checkpoint.py", *selection_args])
             commands.append([sys.executable, "scripts/evaluate.py", "--split", split,
                              "--seed", str(seed), "--checkpoint", checkpoint])
@@ -158,7 +158,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--experiment", choices=("main", "loco", "ablation", "all"), required=True)
     parser.add_argument("--seeds", type=int, nargs="+", choices=SEEDS, default=list(SEEDS))
-    parser.add_argument("--evaluate-only", action="store_true", help="Use bundled or previously dev-selected checkpoints")
+    parser.add_argument("--evaluate-only", action="store_true", help="Use bundled or previously val-selected checkpoints")
     parser.add_argument("--dry-run", action="store_true", help="Print the run plan without training or evaluating")
     parser.add_argument("--device", help="Evaluation device; defaults to CUDA when available")
     parser.add_argument("--structure", action="store_true", help="Also run paper annotation and clustering scoring")

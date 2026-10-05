@@ -1,0 +1,6 @@
+step_size: 0.1
+iterations: 100
+fit_epochs: 20
+fit_lr: 0.01
+fit_weight_decay: 0.0001
+maximum_row_crosstalk: 0.8
