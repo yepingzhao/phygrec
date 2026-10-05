@@ -1,6 +1,6 @@
-"""Command-line entry point for phygrec.verification."""
+"""Command-line entry point for phygrec.data.verification."""
 
-from phygrec.verification import main
+from phygrec.data.verification import main
 
 
 if __name__ == "__main__":

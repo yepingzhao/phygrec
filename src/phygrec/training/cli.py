@@ -3,7 +3,7 @@
 from lightning.pytorch.cli import LightningCLI
 
 from phygrec.data.graph_datamodule import GraphDataModule
-from phygrec.model import PhyGRecModule
+from phygrec.training.module import PhyGRecModule
 
 
 def main() -> None:

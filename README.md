@@ -215,19 +215,23 @@ ablated LOCO rows cannot enter the fold average.
 
 ## Code
 
-| Module | Responsibility |
-| --- | --- |
-| `operators.py` | Circle overlap and observation prediction |
-| `modulation.py`, `graph_corrector.py` | AIM and GCC |
-| `solver.py`, `model.py`, `losses.py` | Unrolled recovery, training, EMA and objective |
-| `data/`, `model_input.py` | Scene packing and observable-input boundary |
-| `expression_metrics.py`, `results.py` | Shared expression metrics and summaries across seeds/folds |
-| `evaluation.py`, `selection.py`, `reproduction.py` | Test evaluation, validation selection and PhyGRec experiment workflow |
-| `baselines/gnn.py`, `baselines/vae.py`, `baselines/physical.py` | Seven fixed comparison models and their numerical operators |
-| `baselines/runner.py`, `baselines/cli.py` | Baseline training/evaluation and command-line dispatch |
-| `structure_evaluation.py`, `structure_metrics.py`, `resources/structure/` | Frozen physical-cell cohorts, annotation and clustering scoring |
-| `verification.py`, `callbacks/` | Benchmark integrity and periodic validation snapshots |
-| `checkpoints.py` | Public checkpoint parameter and format validation |
+```text
+src/phygrec/
+  models/       # Recovery solver, circle operator, AIM, GCC and observable inputs
+  training/     # Lightning module/CLI, loss, checkpoints and validation callback
+  evaluation/   # Expression metrics, physical-cell aggregation and scoring
+  experiments/  # Reproduction, validation selection and seed/fold summaries
+  data/         # Scene stores, batching, hashes and benchmark verification
+  baselines/    # Seven fixed comparison methods, training and CLI
+  resources/    # Frozen annotation/clustering cohorts
+  protocol.py   # Published splits, seeds and repository-relative paths
+  transforms.py # Shared numerical transforms
+```
+
+`training/module.py` connects the core solver to Lightning and manages optimizer
+updates and EMA. `models/` contains the recovery calculations and observable-input
+boundary. Both the main method and baselines reuse `evaluation/` and the summaries
+in `experiments/results.py`. `scripts/` provides the public command entry points.
 
 Hyperparameter search wrappers, intermediate experiments and visualization pipelines
 are outside this method release. Published ablation

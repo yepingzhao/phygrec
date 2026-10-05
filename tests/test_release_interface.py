@@ -3,8 +3,8 @@
 import pytest
 import torch
 
-from phygrec.checkpoints import release_hyperparameters
-from phygrec.model import PhyGRecModule
+from phygrec.training.checkpoints import release_hyperparameters
+from phygrec.training.module import PhyGRecModule
 
 
 @pytest.mark.parametrize("ablation,count", [
@@ -60,7 +60,7 @@ def test_training_cannot_resume_a_different_ablation():
 
 
 def test_lightning_cli_metadata_is_not_a_model_parameter():
-    values = {"ablation": "none", "_class_path": "phygrec.model.PhyGRecModule",
+    values = {"ablation": "none", "_class_path": "phygrec.training.module.PhyGRecModule",
               "_instantiator": "lightning.pytorch.cli.instantiate_module"}
     assert release_hyperparameters(values) == {"ablation": "none"}
     values["_class_path"] = "other.Model"

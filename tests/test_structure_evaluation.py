@@ -6,11 +6,11 @@ import pytest
 pytest.importorskip("scanpy", reason="Install the structure extra for downstream scoring tests")
 pytest.importorskip("leidenalg", reason="Install the structure extra for downstream scoring tests")
 
-from phygrec.reproduction import run
-from phygrec.results import EXPRESSION_METRICS, summarize_results
-from phygrec.structure_evaluation import PhysicalCellAccumulator, load_reference
-from phygrec.results import STRUCTURE_METRICS
-from phygrec.structure_metrics import (
+from phygrec.experiments.reproduce import run
+from phygrec.experiments.results import EXPRESSION_METRICS, summarize_results
+from phygrec.evaluation.structure import PhysicalCellAccumulator, load_reference
+from phygrec.experiments.results import STRUCTURE_METRICS
+from phygrec.evaluation.structure_metrics import (
     CLASS_ORDER, MARKER_PROGRAMS, annotation_metric_record, annotation_protocol,
     clustering_metrics, independent_pca,
 )
@@ -28,7 +28,7 @@ def profiles():
 
 def test_raw_identity_means_exclude_only_zero_reference(monkeypatch):
     reference = {"ids": np.asarray(["b", "a"]), "genes": np.asarray(["g1", "g2"])}
-    monkeypatch.setattr("phygrec.structure_evaluation.load_reference", lambda *args: (reference, {}))
+    monkeypatch.setattr("phygrec.evaluation.structure.load_reference", lambda *args: (reference, {}))
     total = PhysicalCellAccumulator("main", reference["genes"])
     labels = np.asarray(["a", "b", "a", "zero"])
     clean = np.asarray([[2, 4], [3, 6], [2, 4], [0, 0]], dtype=np.float32)
@@ -44,7 +44,7 @@ def test_raw_identity_means_exclude_only_zero_reference(monkeypatch):
 
 def test_missing_physical_cells_cannot_change_the_scored_cohort(monkeypatch):
     ref = {"ids": np.asarray(["a", "b"]), "genes": np.asarray(["g"])}
-    monkeypatch.setattr("phygrec.structure_evaluation.load_reference", lambda *args: (ref, {}))
+    monkeypatch.setattr("phygrec.evaluation.structure.load_reference", lambda *args: (ref, {}))
     totals = PhysicalCellAccumulator("main", ref["genes"])
     totals.update(np.asarray(["a"]), np.ones((1, 1)), np.ones((1, 1)), np.ones((1, 1)))
     with pytest.raises(ValueError, match="Missing receiver"):
@@ -110,7 +110,7 @@ def test_structure_is_available_for_all_published_plans():
 
 @pytest.mark.parametrize("split,cells", [("main", 6394), ("a9", 2027), ("l7", 2127), ("na", 2240)])
 def test_frozen_cohort_resource_and_gene_order(split, cells):
-    from phygrec.structure_evaluation import RESOURCES
+    from phygrec.evaluation.structure import RESOURCES
     with np.load(RESOURCES / f"{split}.npz", allow_pickle=False) as bank:
         genes = bank["genes"]
     reference, metadata = load_reference(split, genes)

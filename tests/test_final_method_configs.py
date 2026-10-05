@@ -9,8 +9,8 @@ import sys
 import pytest
 import yaml
 
-from phygrec.model import PhyGRecModule
-from phygrec.operators import CircleOverlapOperator
+from phygrec.training.module import PhyGRecModule
+from phygrec.models.operators import CircleOverlapOperator
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -45,7 +45,7 @@ def test_final_method_and_ablation_configurations(variant):
 def test_cli_accepts_released_config():
     result = subprocess.run(
         [
-            sys.executable, "-m", "phygrec.cli.main", "fit",
+            sys.executable, "-m", "phygrec.training.cli", "fit",
             "--config", "configs/main/seed20260816.yaml", "--print_config",
         ],
         cwd=ROOT,
@@ -61,9 +61,9 @@ def test_cli_accepts_released_config():
 
 def test_cli_rejects_model_class_selection():
     result = subprocess.run(
-        [sys.executable, "-m", "phygrec.cli.main", "fit", "--config",
+        [sys.executable, "-m", "phygrec.training.cli", "fit", "--config",
          "configs/main/seed20260816.yaml", "--model.class_path",
-         "phygrec.model.PhyGRecModule", "--print_config"],
+         "phygrec.training.module.PhyGRecModule", "--print_config"],
         cwd=ROOT, capture_output=True, text=True, timeout=60,
     )
     assert result.returncode != 0

@@ -10,8 +10,8 @@ import sys
 
 
 from phygrec.protocol import DATA, ROOT, SEEDS, VARIANTS
-from phygrec.selection import select_checkpoint
-from phygrec.results import summarize_results
+from phygrec.experiments.selection import select_checkpoint
+from phygrec.experiments.results import summarize_results
 
 
 def experiment_runs(experiment: str) -> list[tuple[str, str | None]]:
@@ -43,7 +43,7 @@ def run(experiment: str, seeds: list[int], *, evaluate_only: bool = False,
                 selection_args += ["--variant", variant]
             commands = []
             if not evaluate_only:
-                commands.append([sys.executable, "-m", "phygrec.cli.main", "fit", "--config", config])
+                commands.append([sys.executable, "-m", "phygrec.training.cli", "fit", "--config", config])
             checkpoint = str(DATA / f"checkpoints/{split}/seed{seed}.ckpt") if evaluate_only and not variant else "<val-selected checkpoint>"
             if checkpoint == "<val-selected checkpoint>":
                 commands.append([sys.executable, "scripts/select_checkpoint.py", *selection_args])
@@ -57,7 +57,7 @@ def run(experiment: str, seeds: list[int], *, evaluate_only: bool = False,
         return plan
 
     import torch
-    from phygrec.evaluation import evaluate
+    from phygrec.evaluation.expression import evaluate
 
     device = device or ("cuda" if torch.cuda.is_available() else "cpu")
     results = []

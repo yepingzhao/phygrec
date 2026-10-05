@@ -11,7 +11,7 @@ from lightning.pytorch.callbacks import Callback
 
 
 from phygrec.data.hashing import sha256_file
-from phygrec.evaluation import evaluate_validation
+from phygrec.evaluation.expression import evaluate_validation
 from phygrec.protocol import ROOT as REPOSITORY_ROOT
 
 

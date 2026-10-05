@@ -8,8 +8,8 @@ import torch
 from torch import nn
 from torch.utils.checkpoint import checkpoint
 
-from phygrec.modulation import AdaptiveIncrementModulation
-from phygrec.operators import CircleOverlapOperator, graph_prediction
+from phygrec.models.modulation import AdaptiveIncrementModulation
+from phygrec.models.operators import CircleOverlapOperator, graph_prediction
 from phygrec.protocol import ABLATIONS, Ablation
 from phygrec.transforms import _inverse_softplus_scalar
 
@@ -56,7 +56,7 @@ class UnrolledRecoverySolver(nn.Module):
             )
         self.graph_correctors = nn.ModuleList()
         if ablation != "gcc":
-            from phygrec.graph_corrector import GraphContextCorrector
+            from phygrec.models.graph_corrector import GraphContextCorrector
 
             self.graph_correctors = nn.ModuleList(
                 GraphContextCorrector()

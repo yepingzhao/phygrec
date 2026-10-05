@@ -3,7 +3,7 @@
 import h5py
 import pytest
 
-from phygrec.verification import verify_scene_split_metadata
+from phygrec.data.verification import verify_scene_split_metadata
 
 
 @pytest.mark.parametrize("split", ["train", "val", "test"])

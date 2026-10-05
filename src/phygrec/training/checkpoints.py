@@ -11,7 +11,7 @@ def release_hyperparameters(values: dict) -> dict:
     """Accept the public model parameters and Lightning serialization metadata."""
     values = dict(values)
     for name, expected in {
-        "_class_path": "phygrec.model.PhyGRecModule",
+        "_class_path": "phygrec.training.module.PhyGRecModule",
         "_instantiator": "lightning.pytorch.cli.instantiate_module",
     }.items():
         if name in values and values.pop(name) != expected:

@@ -10,11 +10,11 @@ import torch
 from torch import Tensor
 
 from lightning import LightningModule
-from phygrec.model_input import build_compliant_model_input
-from phygrec.solver import PhyGRecSolver
-from phygrec.losses import recovery_loss
+from phygrec.models.inputs import build_compliant_model_input
+from phygrec.models.solver import PhyGRecSolver
+from phygrec.training.losses import recovery_loss
 from phygrec.protocol import ABLATIONS, Ablation
-from phygrec.checkpoints import CHECKPOINT_VERSION, release_hyperparameters
+from phygrec.training.checkpoints import CHECKPOINT_VERSION, release_hyperparameters
 
 
 class PhyGRecModule(LightningModule):

@@ -15,7 +15,7 @@ from phygrec.data.hashing import sha256_file
 from phygrec.protocol import SPLITS
 
 
-RESOURCES = Path(__file__).parent / "resources/structure"
+RESOURCES = Path(__file__).parents[1] / "resources/structure"
 
 
 def load_reference(split: str, genes: np.ndarray) -> tuple[dict, dict]:
@@ -72,7 +72,7 @@ def score_cells(cells: dict, split: str) -> dict:
         path = Path(directory) / "cells.npz"
         np.savez_compressed(path, **cells)
         completed = subprocess.run(
-            [sys.executable, "-m", "phygrec.structure_evaluation", "--split", split, "--cells", str(path)],
+            [sys.executable, "-m", "phygrec.evaluation.structure", "--split", split, "--cells", str(path)],
             env=environment, capture_output=True, text=True, check=True,
         )
     return json.loads(completed.stdout)
@@ -80,7 +80,7 @@ def score_cells(cells: dict, split: str) -> dict:
 
 def evaluate_cells(cells: dict, split: str) -> dict:
     """Score only the frozen nonzero Reference cohort, after prediction."""
-    from phygrec.structure_metrics import (
+    from phygrec.evaluation.structure_metrics import (
         CLASS_ORDER, annotation_metric_record, annotation_protocol,
         clustering_metrics, independent_pca,
     )

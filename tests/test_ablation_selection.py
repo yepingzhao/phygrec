@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 
-from phygrec.selection import select_checkpoint
+from phygrec.experiments.selection import select_checkpoint
 
 
 def test_select_checkpoint_uses_val_score_and_earliest_tie(tmp_path):

@@ -32,7 +32,7 @@ trainer:
       save_last: true
       every_n_train_steps: 2100
       save_on_train_epoch_end: false
-  - class_path: phygrec.callbacks.periodic_shared_scene_validation.PeriodicSharedSceneValidationCallback
+  - class_path: phygrec.training.validation.PeriodicSharedSceneValidationCallback
     init_args:
       run_name: phygrec_na_seed20260818
       output_root: runs/na/seed20260818/val

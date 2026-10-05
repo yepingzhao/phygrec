@@ -6,7 +6,7 @@ from typing import Any
 import numpy as np
 import torch
 from torch import nn
-from phygrec.operators import _intersection_fraction, graph_prediction
+from phygrec.models.operators import _intersection_fraction, graph_prediction
 
 
 class FittedCircleOperator(nn.Module):

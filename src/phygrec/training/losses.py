@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import torch
 
-from phygrec.solver import PhyGRecSolver
+from phygrec.models.solver import PhyGRecSolver
 from phygrec.transforms import normalized_log
 
 

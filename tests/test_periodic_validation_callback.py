@@ -6,8 +6,8 @@ import hashlib
 import pytest
 import torch
 
-from phygrec.callbacks.periodic_shared_scene_validation import PeriodicSharedSceneValidationCallback
-import phygrec.callbacks.periodic_shared_scene_validation as periodic_val
+from phygrec.training.validation import PeriodicSharedSceneValidationCallback
+import phygrec.training.validation as periodic_val
 
 
 @pytest.mark.parametrize("updates", [61, 21])

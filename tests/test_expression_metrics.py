@@ -3,7 +3,7 @@
 import pytest
 import torch
 
-from phygrec.expression_metrics import ExpressionMetricAccumulator
+from phygrec.evaluation.expression_metrics import ExpressionMetricAccumulator
 
 
 def test_receiver_weighting_and_rmse_are_independent_of_batch_partition():

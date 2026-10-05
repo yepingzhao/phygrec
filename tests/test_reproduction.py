@@ -2,8 +2,8 @@
 
 import pytest
 
-from phygrec.reproduction import run
-from phygrec.results import EXPRESSION_METRICS, summarize_results
+from phygrec.experiments.reproduce import run
+from phygrec.experiments.results import EXPRESSION_METRICS, summarize_results
 
 
 def row(split, seed, value):

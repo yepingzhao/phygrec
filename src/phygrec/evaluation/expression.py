@@ -14,9 +14,9 @@ from torch.utils.data import DataLoader
 
 from phygrec.data.hashing import sha256_file
 from phygrec.data.shared_scene_graphs import SharedSceneGraphDataset, pack_scene_graphs
-from phygrec.model_input import build_compliant_model_input
+from phygrec.models.inputs import build_compliant_model_input
 from phygrec.protocol import DATA, FOLDS, ROOT, SEEDS, SPLITS, benchmark_directory
-from phygrec.expression_metrics import ExpressionMetricAccumulator
+from phygrec.evaluation.expression_metrics import ExpressionMetricAccumulator
 
 
 @torch.inference_mode()
@@ -63,7 +63,7 @@ def evaluate_model(model, split: str, seed: int, device_name: str, *,
     scenes_seen: set[str] = set()
     cells = None
     if structure:
-        from phygrec.structure_evaluation import PhysicalCellAccumulator
+        from phygrec.evaluation.structure import PhysicalCellAccumulator
         cells = PhysicalCellAccumulator(split, dataset.genes)
     with torch.inference_mode():
         for cpu in loader:
@@ -107,14 +107,14 @@ def evaluate_model(model, split: str, seed: int, device_name: str, *,
         "input_relative_l1": scores["input_raw_l1"],
     }
     if cells is not None:
-        from phygrec.structure_evaluation import score_cells
+        from phygrec.evaluation.structure import score_cells
         result["structure"] = score_cells(cells.means(), split)
     return result
 
 
 def evaluate(split: str, seed: int, device_name: str,
              checkpoint_path: Path | None = None, *, structure: bool = False) -> dict:
-    from phygrec.model import PhyGRecModule
+    from phygrec.training.module import PhyGRecModule
 
     checkpoint = checkpoint_path or DATA / f"checkpoints/{split}/seed{seed}.ckpt"
     model = PhyGRecModule.load_from_checkpoint(str(checkpoint), map_location="cpu").to(device_name).eval()

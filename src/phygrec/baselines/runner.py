@@ -17,9 +17,9 @@ from phygrec.baselines.gnn import (
 from phygrec.baselines.physical import FittedCircleOperator, solve_physical_pgd
 from phygrec.baselines.vae import VAEBaseline
 from phygrec.data.shared_scene_graphs import SharedSceneGraphDataset, pack_scene_graphs
-from phygrec.expression_metrics import ExpressionMetricAccumulator
-from phygrec.evaluation import evaluate_model
-from phygrec.operators import graph_prediction
+from phygrec.evaluation.expression_metrics import ExpressionMetricAccumulator
+from phygrec.evaluation.expression import evaluate_model
+from phygrec.models.operators import graph_prediction
 from phygrec.protocol import ROOT, benchmark_directory
 from phygrec.transforms import normalized_log
 

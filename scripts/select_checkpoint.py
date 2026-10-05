@@ -1,6 +1,6 @@
-"""Command-line entry point for phygrec.selection."""
+"""Command-line entry point for phygrec.experiments.selection."""
 
-from phygrec.selection import main
+from phygrec.experiments.selection import main
 
 
 if __name__ == "__main__":
