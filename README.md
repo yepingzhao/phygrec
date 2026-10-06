@@ -1,152 +1,148 @@
 # PhyGRec
 
-Four-Block recovery of spatial transcriptomic expression, with the fixed split,
-receiver-LOCO folds and the paper's three component-removal ablations.
+Physics-guided graph recovery for spatial transcriptomic expression. This repository
+contains the paper's final method, receiver-LOCO experiments, three component-removal
+ablations, seven comparison baselines, and expression, annotation and clustering
+evaluation.
 
-## Install and data
+## Installation
 
-Use Python 3.11 or newer and install from the repository root:
+Use Python 3.11 or newer for expression experiments, or Python 3.12 or newer for
+annotation and clustering. Run all commands from this repository's root:
+
+```bash
+python -m pip install -e .
+```
+
+PhyGRec training configurations use one GPU. Install a PyTorch build appropriate
+for your accelerator; [environment.txt](environment.txt) records the tested runtime.
+To run the test suite:
 
 ```bash
 python -m pip install -e '.[test]'
 python -m pytest -q
 ```
 
-Place the separate benchmark release beside this repository:
+## Benchmark data
+
+Obtain the final benchmark files separately and place `phygrec-data/` beside the
+repository. The expected layout is:
 
 ```text
 phygrec/
 phygrec-data/
   MANIFEST.json
-  benchmark/main/{train,val,test}.h5
-  benchmark/loco/fold_{a9,l7,na}/{train,val,test}.h5
+  benchmark/
+    main/        # train.h5, val.h5, test.h5 and genes.txt
+    loco/
+      fold_a9/   # train.h5, val.h5, test.h5 and genes.txt
+      fold_l7/   # train.h5, val.h5, test.h5 and genes.txt
+      fold_na/   # train.h5, val.h5, test.h5 and genes.txt
   results/ablation_expression.json
 ```
 
-Run commands from the repository root. The released HDF5 stores include measured
-single-chip expression profiles, constructed mixing scenes and Reference targets.
-The model receives only mixed expression, receiver/candidate indices, distances
-and masks. Raw assays and segmentation inputs are outside this release.
-`environment.txt` records the tested runtime versions.
+Verify the files listed in the manifest, gene order and split isolation before
+running experiments:
 
 ```bash
 python scripts/verify_release.py
 ```
 
-## Reproduce
+The HDF5 files contain mixing scenes and Reference expression targets. Model
+inputs are restricted to mixed expression, receiver/candidate indices, distances
+and masks. The release uses prepared benchmark files; data construction is a
+separate workflow.
 
-Each command runs the specified configurations, selects checkpoints on validation
-data, evaluates them on test data and writes individual scores and a summary to
-`runs/results/`. Training uses one GPU and the original 100-epoch schedule.
+## Reproduce the experiments
 
-```bash
-python scripts/reproduce.py --experiment main
-python scripts/reproduce.py --experiment loco
-python scripts/reproduce.py --experiment ablation
-```
+Each command trains the configured runs, selects checkpoints using validation
+scores, evaluates on the test split and saves scores under `runs/results/`.
+All experiments use seeds `20260816`, `20260817` and `20260818`.
 
-### Annotation and clustering
+| Experiment | Command | Training runs |
+| --- | --- | ---: |
+| Main | `python scripts/reproduce.py --experiment main` | 3 |
+| Receiver-LOCO (A9, L7, NA) | `python scripts/reproduce.py --experiment loco` | 9 |
+| Full model and three removals | `python scripts/reproduce.py --experiment ablation` | 12 |
+| All of the above, sharing the full-model runs | `python scripts/reproduce.py --experiment all` | 21 |
 
-Annotation and clustering scoring require Python 3.12 or newer.
-Install the additional scoring dependencies, then add `--structure` to any
-published experiment (main, LOCO or ablation):
-
-```bash
-python -m pip install -e '.[test,structure]'
-python scripts/reproduce.py --experiment main --structure
-python scripts/reproduce.py --experiment loco --structure
-python scripts/reproduce.py --experiment ablation --structure
-```
-
-For an already trained public checkpoint:
+Use `--seeds 20260816` for one seed or `--dry-run` to inspect a plan without
+training or evaluating:
 
 ```bash
-python scripts/evaluate.py --split main --seed 20260816 --checkpoint PATH --structure
+python scripts/reproduce.py --experiment all --seeds 20260816 --dry-run
 ```
 
-This adds `structure` records to individual score files and summaries. Raw
-receiver-scene predictions are averaged by physical-cell identity within each
-training seed before scoring. Only the frozen nonzero-Reference cohorts enter
-structure scoring: 6,394 cells for main and 2,027/2,127/2,240 for A9/L7/NA.
-Zero-Reference receivers remain in expression-error scoring.
+The ablation configurations retain all settings of the remaining components:
 
-Annotation fits gene standardization once on Reference log-normalized counts,
-clips standardized values to `[-10,10]` and freezes five complete marker programs.
-It reports Accuracy, Macro Precision, Balanced Accuracy, Macro F1, MCC, Cohen's
-kappa, Macro AP from softmax marker scores, and the five-class confusion matrix.
-Reference Macro AP is omitted; Reference hard-label agreement equals one.
+| Configuration directory | Removed component |
+| --- | --- |
+| `configs/ablation/rb/` | Physical backprojection increment; circle operator and candidate graph retained |
+| `configs/ablation/aim/` | Adaptive gain and momentum |
+| `configs/ablation/gcc/` | Graph-context correction |
 
-Each expression state independently fits standardized, clipped 20-PC expression,
-a 30-neighbor cosine graph and Leiden at resolution `0.35` with the three fixed
-initializations. The output includes mean ARI/NMI against frozen Reference
-partitions, pairwise stability ARI, cluster counts and frozen-label silhouette
-on at most 4,000 cells. Within-seed Leiden variation is recorded separately from
-training-seed variation. LOCO averages fold metrics before training-seed summaries.
-Reference and Mixed are point estimates.
+### Seven comparison baselines
 
-The small packaged resources under `src/phygrec/resources/structure/` contain
-the paper's frozen identities, gene order and Reference cluster labels. Scoring
-checks their hashes and the aggregated Reference expression hash. These labels
-are used only after prediction; they never enter training or model input. The
-main Reference partition is preserved from the original scoring cohort rather
-than replaced by a new Reference clustering. Scoring runs in a separate process
-with the original one-thread settings. This release does not include UMAP plots
-or baseline search pipelines.
-
-`ablation` includes the full model and all three removals. All commands use seeds
-`20260816`, `20260817` and `20260818`. Use `--seeds 20260816` for one seed,
-`--dry-run` to inspect the commands, or `--experiment all` for all 21 runs.
-
-Checkpoint publication follows finalization and retraining of this code. The
-loader accepts only checkpoints generated by this public implementation. After
-placing validation-selected main/LOCO checkpoints under
-`phygrec-data/checkpoints/{main,a9,l7,na}/seed{20260816,20260817,20260818}.ckpt`,
-they can be scored without training:
-
-```bash
-python scripts/reproduce.py --experiment main --evaluate-only
-python scripts/reproduce.py --experiment loco --evaluate-only
-```
-
-Ablation evaluation selects previously trained ablations from their validation
-scores. `--experiment ablation --evaluate-only` also requires the main checkpoints
-in the directory above.
-
-## Comparison baselines
-
-The seven final controls are GATv2, GraphSAGE, GAT, GCN, MPNN, VAE and
-Physical PGD. Their fixed configurations are in `configs/baselines/` and
-are reused for all LOCO folds. To train, select and score them:
+The final methods are GATv2, GraphSAGE, GAT, GCN, MPNN, VAE and Physical PGD.
+Their CLI names are `gatv2`, `graphsage`, `gat`, `gcn`, `mpnn`, `vae` and
+`physical_pgd`. Fixed configurations in [configs/baselines/](configs/baselines/)
+are reused across the main split and LOCO folds.
 
 ```bash
 python scripts/baselines.py reproduce --method all --experiment main
+python scripts/baselines.py reproduce --method all --experiment loco
+```
+
+These commands also accept `--seeds`, `--dry-run` and `--evaluate-only`.
+Use `--method gatv2` to run one baseline, or `--experiment all` for both main
+and LOCO. Baseline scores use the same evaluation functions as PhyGRec.
+
+Neural baselines train for 100 epochs with raw relative L1 plus normalized-log
+MAE, AdamW and gradient clipping at 5. Validation runs at epoch 1 and every five
+epochs; the earliest checkpoint with the highest recovery score is selected.
+VAE adds KL weight `0.02` and evaluates with its latent mean. MPNN uses fixed
+distance-kernel weights in residual messages. Physical PGD fits a four-parameter
+circle operator for 20 epochs on training data, then freezes it for 100 PGD
+iterations with step size `0.1`; main fitting averages three independent scene
+losses per update, while LOCO fitting packs six scenes per update.
+
+### Annotation and clustering
+
+Install the optional dependencies, then add `--structure` to either reproduction
+entry point:
+
+```bash
+python -m pip install -e '.[structure]'
+python scripts/reproduce.py --experiment main --structure
 python scripts/baselines.py reproduce --method all --experiment loco --structure
 ```
 
-Add `--dry-run` to inspect the commands, `--seeds 20260816` for one seed,
-or `--evaluate-only` to score completed runs. Individual commands are:
+Within each training seed, raw receiver-scene predictions are averaged by physical
+cell identity. Scoring uses frozen nonzero-Reference cohorts: 6,394 cells for main
+and 2,027/2,127/2,240 for A9/L7/NA. Zero-Reference receivers remain in expression
+evaluation.
 
-```bash
-python scripts/baselines.py train --method gatv2 --split main --seed 20260816
-python scripts/baselines.py evaluate --method gatv2 --split main --seed 20260816 --structure
-```
+Annotation standardization is fitted once on Reference log-normalized counts,
+clipped to `[-10, 10]` and applied to five fixed marker programs. Outputs include
+Accuracy, Macro Precision, Balanced Accuracy, Macro F1, MCC, Cohen's kappa,
+Macro AP from softmax marker scores, and a five-class confusion matrix. Reference
+hard-label agreement is one; its Macro AP is omitted.
 
-Neural baselines run 100 epochs, validate at epoch 1 and every five epochs,
-and select the earliest checkpoint attaining the highest validation recovery.
-They use raw relative L1 plus normalized-log MAE, AdamW, and clipping at 5;
-VAE adds KL weight 0.02 and uses its deterministic latent mean at evaluation.
-MPNN retains fixed distance-kernel weights in its residual-message updates.
-Physical PGD first fits its independent four-parameter circle operator for
-20 epochs on training data only, then freezes it for 100 iterations at step
-size 0.1. It does not require a PhyGRec checkpoint. Main fitting averages three
-independent scene losses per update; LOCO fitting packs six scenes per update.
-Expression and optional annotation/clustering metrics use the same scoring
-functions as PhyGRec. Results are written to `runs/results/baselines/`.
+Clustering fits each expression state independently using standardized, clipped
+20-PC expression, a 30-neighbor cosine graph and Leiden resolution `0.35` with
+three fixed initializations. Outputs include ARI/NMI against frozen Reference
+partitions, pairwise stability ARI, cluster counts and frozen-label silhouette
+on at most 4,000 cells. Leiden variation is recorded separately from training-seed
+variation; Reference and Mixed scores are point estimates.
 
-## Individual runs
+Frozen cohorts and Reference partitions are packaged in
+[src/phygrec/resources/structure/](src/phygrec/resources/structure/). Scoring checks
+resource and aggregated Reference-expression hashes and runs in a separate
+process with one-thread settings. Reference labels are used only for evaluation.
 
-The YAML files preserve the training parameters, seeds, batching and validation
-schedule used by the reported experiments. For example:
+## Individual runs and saved checkpoints
+
+To train and evaluate one PhyGRec configuration:
 
 ```bash
 phygrec-cli fit --config configs/main/seed20260816.yaml
@@ -154,7 +150,8 @@ python scripts/select_checkpoint.py --split main --seed 20260816
 python scripts/evaluate.py --split main --seed 20260816 --checkpoint PATH_FROM_SELECTOR
 ```
 
-For a component removal:
+Replace `PATH_FROM_SELECTOR` with the selector's JSON `checkpoint` value. For an
+ablation, use its YAML and pass `--variant` to the selector:
 
 ```bash
 phygrec-cli fit --config configs/ablation/gcc/seed20260816.yaml
@@ -162,79 +159,88 @@ python scripts/select_checkpoint.py --variant gcc --seed 20260816
 python scripts/evaluate.py --split main --seed 20260816 --checkpoint PATH_FROM_SELECTOR
 ```
 
-The three ablation configurations are:
+Individual baseline commands are:
 
-| Directory under `configs/ablation/` | Removed component |
-| --- | --- |
-| `rb` | Physical backprojection increment; circle operator and candidate graph retained |
-| `aim` | Adaptive gain and momentum, following the original experiment |
-| `gcc` | Graph-context correction |
-
-Nonremoved settings are inherited without per-variant tuning. Checkpoints are
-scored every ten epochs. Selection maximizes the mean of Log-MAE and Rel. L1
-recovery relative to the mixed input; ties favor the earliest epoch. Validation
-and test use checkpoint EMA parameters. Test data do not enter selection.
-
-The model interface accepts `ablation: none | rb | aim | gcc` and the four
-learning rates `solver_lr`, `circle_lr`, `aim_lr` and `gcc_lr`. Defaults create
-the complete model with the reported rates. YAML `model` entries contain those
-five parameters directly; the CLI always constructs `PhyGRecModule`.
-Architecture is fixed: four Blocks,
-1000 genes, width-16 AIM, and two width-128 GATv2 layers with four heads and zero
-dropout. Combined removals and alternative architectures are not supported.
-Weight decay, clipping, EMA and accumulation are fixed to the settings below.
-Training and validation/test batches are fixed at three and six graphs,
-respectively, preserving the packed circle normalization used by the experiment.
-
-## Settings and scoring
-
-The solver, circle operator, AIM and GCC learning rates are
-`0.003125`, `0.06`, `0.003` and `0.01`. Training minimizes raw relative L1 plus
-normalized-log MAE, with unit weights. AdamW uses weight decay `1e-4`, gradient
-clipping `1` and EMA decay `0.99`. Three scene graphs per batch and two-batch
-accumulation give an effective batch of six graphs.
-
-Each Block combines the physical increment, adaptive modulation, momentum and
-graph correction before one nonnegative projection. The full model has
-`2,832,681` parameters. Circle-total normalization uses the detached median of
-receiver totals and valid donor-slot totals across the packed batch.
-Checkpoints save the public parameter names, EMA and optimizer update count.
-Legacy parameter aliases and architecture switches are not supported.
-Selection reads only the configured `phygrec_{full,a9,l7,na,rb,aim,gcc}_seedSEED`
-run directory. Existing validation points are never reused or overwritten;
-start a repeated training attempt in a fresh output directory.
-
-Expression scores are Count-MAE, Log-MAE, Rel. L1, Count-RMSE, Log-RMSE and
-Rel. L2 over receiver-scene entries. Rel. L2 divides each receiver's error norm
-by its Reference norm, floored at one, before averaging. Summaries report the
-mean and sample SD across seeds.
-LOCO averages the three fold scores equally within each seed before computing
-the seed statistics. A single-seed run reports no sample SD.
-Summaries accept only the published splits and the three main-split removals;
-ablated LOCO rows cannot enter the fold average.
-
-## Code
-
-```text
-src/phygrec/
-  models/       # Recovery solver, circle operator, AIM, GCC and observable inputs
-  training/     # Lightning module/CLI, loss, checkpoints and validation callback
-  evaluation/   # Expression metrics, physical-cell aggregation and scoring
-  experiments/  # Reproduction, validation selection and seed/fold summaries
-  data/         # Scene stores, batching, hashes and benchmark verification
-  baselines/    # Seven fixed comparison methods, training and CLI
-  resources/    # Frozen annotation/clustering cohorts
-  protocol.py   # Published splits, seeds and repository-relative paths
-  transforms.py # Shared numerical transforms
+```bash
+python scripts/baselines.py train --method gatv2 --split main --seed 20260816
+python scripts/baselines.py evaluate --method gatv2 --split main --seed 20260816
 ```
 
-`training/module.py` connects the core solver to Lightning and manages optimizer
-updates and EMA. `models/` contains the recovery calculations and observable-input
-boundary. Both the main method and baselines reuse `evaluation/` and the summaries
-in `experiments/results.py`. `scripts/` provides the public command entry points.
+Both evaluation scripts print JSON and accept `--structure`. `--device cpu` or
+`--device cuda` controls PhyGRec evaluation; for baselines it controls both training
+and evaluation.
 
-Hyperparameter search wrappers, intermediate experiments and visualization pipelines
-are outside this method release. Published ablation
-epochs, metrics and original parameter counts are retained in the data release.
+**Public checkpoints will be released after retraining with the finalized code.**
+PhyGRec `--evaluate-only` expects validation-selected checkpoints at
+`../phygrec-data/checkpoints/{main,a9,l7,na}/seedSEED.ckpt`. Ablation evaluation
+selects previously trained removal checkpoints from validation records and also
+requires the main checkpoints. Baseline `--evaluate-only` uses existing
+`runs/baselines/METHOD/SPLIT/seedSEED/best.pt` files.
+
+## Training and scoring protocol
+
+The full model has four Blocks and 2,832,681 parameters, with 1,000 genes,
+width-16 AIM, and two width-128 GATv2 layers with four heads and zero dropout.
+Each Block combines physical backprojection, adaptive modulation, momentum and
+graph correction before a nonnegative projection.
+
+| PhyGRec setting | Value |
+| --- | --- |
+| Learning rates: solver / circle / AIM / GCC | `0.003125 / 0.06 / 0.003 / 0.01` |
+| Training schedule | 100 epochs, one GPU |
+| Training batch / gradient accumulation | 3 scene graphs / 2 batches (6 effective graphs) |
+| Validation and test batch | 6 scene graphs |
+| Loss | Raw relative L1 + normalized-log MAE, unit weights |
+| Optimizer / weight decay | AdamW / `1e-4` |
+| Gradient clipping / EMA decay | `1 / 0.99` |
+| Validation interval | Every 10 epochs |
+
+Validation selection maximizes the mean of Log-MAE and relative-L1 recovery
+relative to Mixed, breaking ties by earliest epoch. Validation and test use EMA
+parameters. Test data do not enter selection. Circle-total normalization uses
+the detached median of receiver and valid donor-slot totals across the packed
+batch. Start repeated training attempts in a fresh output directory: existing
+validation points are never overwritten.
+
+Expression metrics are Count-MAE, Log-MAE, relative L1, Count-RMSE, Log-RMSE and
+relative L2 over receiver-scene entries. Relative L2 averages each receiver's
+error norm divided by its Reference norm, floored at one. Summaries report mean
+and sample SD across training seeds; a single-seed run has no sample SD. LOCO
+averages the three folds equally within each seed before computing seed statistics.
+
+### Result files
+
+| Output | Location |
+| --- | --- |
+| PhyGRec per-run scores | `runs/results/{main,a9,l7,na,rb,aim,gcc}/seedSEED.json` |
+| PhyGRec summaries | `runs/results/{main,loco,ablation,all}_summary.json` |
+| Baseline per-run scores | `runs/results/baselines/METHOD/SPLIT/seedSEED.json` |
+| Baseline summaries | `runs/results/baselines/{main,loco,all}_summary.json` |
+
+With `--structure`, these files also contain annotation and clustering results.
+
+## Repository layout
+
+```text
+configs/                  # Fixed main, LOCO, ablation and baseline configurations
+scripts/                  # Reproduction, evaluation, selection and verification entry points
+src/phygrec/
+  models/                 # Recovery solver, circle operator, AIM, GCC and observable inputs
+  training/               # Lightning module/CLI, loss, checkpoints and validation callback
+  evaluation/             # Expression metrics, physical-cell aggregation and scoring
+  experiments/            # Reproduction, validation selection and seed/fold summaries
+  data/                   # Scene stores, batching, hashes and benchmark verification
+  baselines/              # Seven comparison methods and their training/evaluation CLI
+  resources/              # Frozen annotation/clustering cohorts
+  protocol.py             # Published splits, seeds and repository-relative paths
+  transforms.py           # Shared numerical transforms
+tests/                    # Model, protocol and evaluation checks
+```
+
+The main method and baselines share `evaluation/` and the summaries in
+`experiments/results.py`. Published ablation scores and original parameter counts
+are retained in the separate data release.
+
+## License
+
 A code license has not yet been selected.
-
