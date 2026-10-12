@@ -39,6 +39,12 @@ phygrec-data/
       fold_l7/   # train.h5, val.h5, test.h5 and genes.txt
       fold_na/   # train.h5, val.h5, test.h5 and genes.txt
   results/ablation_expression.json
+  structure/
+    main.npz
+    a9.npz
+    l7.npz
+    na.npz
+    manifest.json
 ```
 
 Verify the files listed in the manifest, gene order and split isolation before
@@ -135,8 +141,8 @@ partitions, pairwise stability ARI, cluster counts and frozen-label silhouette
 on at most 4,000 cells. Leiden variation is recorded separately from training-seed
 variation; Reference and Mixed scores are point estimates.
 
-Frozen cohorts and Reference partitions are packaged in
-[src/phygrec/resources/structure/](src/phygrec/resources/structure/). Scoring checks
+Frozen cohorts, gene order and Reference partitions are supplied in
+`../phygrec-data/structure/` with the benchmark data. Scoring checks
 resource and aggregated Reference-expression hashes and runs in a separate
 process with one-thread settings. Reference labels are used only for evaluation.
 
@@ -231,7 +237,6 @@ src/phygrec/
   experiments/            # Reproduction, validation selection and seed/fold summaries
   data/                   # Scene stores, batching, hashes and benchmark verification
   baselines/              # Seven comparison methods and their training/evaluation CLI
-  resources/              # Frozen annotation/clustering cohorts
   protocol.py             # Published splits, seeds and repository-relative paths
   transforms.py           # Shared numerical transforms
 tests/                    # Model, protocol and evaluation checks

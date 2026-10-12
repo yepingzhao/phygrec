@@ -12,10 +12,10 @@ import tempfile
 import numpy as np
 
 from phygrec.data.hashing import sha256_file
-from phygrec.protocol import SPLITS
+from phygrec.protocol import DATA, SPLITS
 
 
-RESOURCES = Path(__file__).parents[1] / "resources/structure"
+RESOURCES = DATA / "structure"
 
 
 def load_reference(split: str, genes: np.ndarray) -> tuple[dict, dict]:

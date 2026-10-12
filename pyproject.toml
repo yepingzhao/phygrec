@@ -28,8 +28,5 @@ phygrec-reproduce = "phygrec.experiments.reproduce:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 
-[tool.setuptools.package-data]
-phygrec = ["resources/structure/*.npz", "resources/structure/manifest.json"]
-
 [tool.pytest.ini_options]
 pythonpath = ["src"]

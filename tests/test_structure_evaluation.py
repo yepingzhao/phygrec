@@ -111,6 +111,8 @@ def test_structure_is_available_for_all_published_plans():
 @pytest.mark.parametrize("split,cells", [("main", 6394), ("a9", 2027), ("l7", 2127), ("na", 2240)])
 def test_frozen_cohort_resource_and_gene_order(split, cells):
     from phygrec.evaluation.structure import RESOURCES
+    if not RESOURCES.is_dir():
+        pytest.skip("Place the separate benchmark release in ../phygrec-data/")
     with np.load(RESOURCES / f"{split}.npz", allow_pickle=False) as bank:
         genes = bank["genes"]
     reference, metadata = load_reference(split, genes)
