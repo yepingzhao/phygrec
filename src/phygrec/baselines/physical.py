@@ -6,7 +6,7 @@ from typing import Any
 import numpy as np
 import torch
 from torch import nn
-from phygrec.models.operators import _intersection_fraction, graph_prediction
+from phygrec.models.operators import intersection_fraction, graph_prediction
 
 
 class FittedCircleOperator(nn.Module):
@@ -32,10 +32,6 @@ class FittedCircleOperator(nn.Module):
         radius_raw = self.log_base_radius
         receiver_scale_raw = self.receiver_scale_log
         return {'base_radius': torch.exp(radius_raw.clamp(-4.0, 8.0)), 'total_exponent': nn.functional.softplus(self.total_exponent_logit), 'receiver_scale': torch.exp(receiver_scale_raw.clamp(-3.0, 3.0)), 'transfer_efficiency': torch.sigmoid(self.efficiency_logit)}
-
-    @staticmethod
-    def _intersection_fraction(distance: torch.Tensor, receiver_radius: torch.Tensor, donor_radius: torch.Tensor) -> torch.Tensor:
-        return _intersection_fraction(distance, receiver_radius, donor_radius)
 
     def forward(self, distance: torch.Tensor, candidate_mask: torch.Tensor, receiver_total: torch.Tensor, donor_total: torch.Tensor, observation_graph_index: torch.Tensor | None=None) -> tuple[torch.Tensor, torch.Tensor]:
         if distance.shape != candidate_mask.shape or donor_total.shape != distance.shape:
@@ -68,7 +64,7 @@ class FittedCircleOperator(nn.Module):
         receiver_radius = (parameters['base_radius'] * (receiver_total.clamp_min(1.0) / total_scale).pow(parameters['total_exponent']) * parameters['receiver_scale'])[:, None]
         donor_scale = total_scale if total_scale.ndim == 0 else total_scale[:, None]
         donor_radius = parameters['base_radius'] * (donor_total.clamp_min(1.0) / donor_scale).pow(parameters['total_exponent'])
-        fraction = parameters['transfer_efficiency'] * self._intersection_fraction(finite_distance, receiver_radius, donor_radius)
+        fraction = parameters['transfer_efficiency'] * intersection_fraction(finite_distance, receiver_radius, donor_radius)
         fraction = torch.where(effective_mask, fraction, torch.zeros_like(fraction))
         row_total = fraction.sum(dim=1)
         row_scale = torch.clamp(self.maximum_row_crosstalk / row_total.clamp_min(1e-08), max=1.0)

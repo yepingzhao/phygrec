@@ -15,7 +15,7 @@ from sklearn.metrics import (
 )
 from sklearn.preprocessing import StandardScaler, label_binarize
 
-from phygrec.protocol import SEEDS
+from phygrec import SEEDS
 
 
 def normalize_log1p(matrix: np.ndarray) -> np.ndarray:

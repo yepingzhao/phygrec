@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from phygrec.protocol import SPLITS, VARIANTS
+from phygrec import SPLITS, VARIANTS
 
 
 EXPRESSION_METRICS = ("count_mae", "log_mae", "relative_l1", "count_rmse", "log_rmse", "relative_l2")

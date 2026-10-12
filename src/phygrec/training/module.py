@@ -10,11 +10,52 @@ import torch
 from torch import Tensor
 
 from lightning import LightningModule
-from phygrec.models.inputs import build_compliant_model_input
+from phygrec.models import build_compliant_model_input
 from phygrec.models.solver import PhyGRecSolver
-from phygrec.training.losses import recovery_loss
-from phygrec.protocol import ABLATIONS, Ablation
-from phygrec.training.checkpoints import CHECKPOINT_VERSION, release_hyperparameters
+from phygrec import ABLATIONS, Ablation
+from phygrec.utils import normalized_log
+
+
+TRAINING_KEYS = {"ablation", "solver_lr", "circle_lr", "aim_lr", "gcc_lr"}
+CHECKPOINT_VERSION = 1
+
+
+def release_hyperparameters(values: dict) -> dict:
+    """Accept the public model parameters and Lightning serialization metadata."""
+    values = dict(values)
+    for name, expected in {
+        "_class_path": "phygrec.training.module.PhyGRecModule",
+        "_instantiator": "lightning.pytorch.cli.instantiate_module",
+    }.items():
+        if name in values and values.pop(name) != expected:
+            raise ValueError(f"Unsupported checkpoint {name}")
+    if set(values) - TRAINING_KEYS or values.get("ablation") not in ABLATIONS:
+        raise ValueError("Checkpoint must use the public PhyGRec model parameters")
+    return values
+
+
+def recovery_loss(
+    model: PhyGRecSolver,
+    graph: dict,
+    model_graph: dict,
+) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+    """Supervise the final clean expression with raw and profile errors."""
+    node_mask = graph["train_mask"]
+    prediction = model(model_graph)
+    selected_prediction = prediction[node_mask]
+    selected_clean = graph["clean"][node_mask]
+    total = selected_clean.sum(dim=1).clamp_min(1.0)
+    raw_error = (
+        (selected_prediction - selected_clean).abs().sum(dim=1) / total
+    ).mean()
+    profile_per_item = (
+        normalized_log(selected_prediction) - normalized_log(selected_clean)
+    ).abs().mean(dim=1)
+    profile_mae = profile_per_item.mean()
+    return raw_error + profile_mae, {
+        "clean_raw_l1": raw_error,
+        "clean_profile_mae": profile_mae,
+    }
 
 
 class PhyGRecModule(LightningModule):

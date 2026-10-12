@@ -2,8 +2,8 @@
 
 import pytest
 
-from phygrec.experiments.reproduce import run
-from phygrec.experiments.results import EXPRESSION_METRICS, summarize_results
+from reproduce import run
+from phygrec.evaluation.results import EXPRESSION_METRICS, summarize_results
 
 
 def row(split, seed, value):
@@ -46,7 +46,6 @@ def test_ablation_plan_includes_full_model_and_all_three_removals():
     assert plan[0]["variant"] is None
     assert len({item["config"] for item in plan}) == 4
     for item in plan:
-        assert len(item["commands"]) == 3
+        assert len(item["commands"]) == 2
         assert "fit" in item["commands"][0]
-        assert item["commands"][1][1] == "scripts/select_checkpoint.py"
-        assert item["commands"][2][1] == "scripts/evaluate.py"
+        assert item["commands"][1][1] == "scripts/evaluate.py"

@@ -5,7 +5,7 @@ from __future__ import annotations
 import torch
 from torch import nn
 
-from phygrec.transforms import _inverse_softplus_scalar
+from phygrec.utils import inverse_softplus_scalar
 
 
 def graph_prediction(
@@ -31,7 +31,7 @@ def graph_prediction(
     return prediction
 
 
-def _intersection_fraction(
+def intersection_fraction(
     distance: torch.Tensor,
     receiver_radius: torch.Tensor,
     donor_radius: torch.Tensor,
@@ -79,13 +79,13 @@ class CircleOverlapOperator(nn.Module):
         super().__init__()
         self.iterations = 4
         self.log_base_radius = nn.Parameter(torch.full(
-            (self.iterations,), _inverse_softplus_scalar(50.0), dtype=torch.float32
+            (self.iterations,), inverse_softplus_scalar(50.0), dtype=torch.float32
         ))
         self.total_exponent_logit = nn.Parameter(torch.full(
             (self.iterations,), -2.0, dtype=torch.float32
         ))
         self.receiver_scale_log = nn.Parameter(torch.full(
-            (self.iterations,), _inverse_softplus_scalar(1.0), dtype=torch.float32
+            (self.iterations,), inverse_softplus_scalar(1.0), dtype=torch.float32
         ))
         self.efficiency_logit = nn.Parameter(torch.full(
             (self.iterations,), 2.2, dtype=torch.float32
@@ -135,7 +135,7 @@ class CircleOverlapOperator(nn.Module):
         donor_radius = parameters["base_radius"] * (
             donor_total.clamp_min(1.0) / total_scale
         ).pow(parameters["total_exponent"])
-        overlap = _intersection_fraction(
+        overlap = intersection_fraction(
             finite_distance,
             receiver_radius.unsqueeze(-1),
             donor_radius,

@@ -5,7 +5,7 @@ from __future__ import annotations
 import torch
 from torch import nn
 
-from phygrec.transforms import _inverse_softplus_scalar
+from phygrec.utils import inverse_softplus_scalar
 
 
 class AdaptiveGainNetwork(nn.Module):
@@ -80,5 +80,5 @@ class AdaptiveIncrementModulation(nn.Module):
             iteration=iteration,
             physical_update=physical_gradient_update,
         )
-        offset = coordinate.new_tensor(_inverse_softplus_scalar(1.0))
+        offset = coordinate.new_tensor(inverse_softplus_scalar(1.0))
         return torch.nn.functional.softplus(coordinate + offset)

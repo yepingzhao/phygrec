@@ -9,8 +9,8 @@ import sys
 import torch
 
 from phygrec.baselines.runner import METHODS, train, evaluate
-from phygrec.protocol import ROOT, SEEDS, SPLITS
-from phygrec.experiments.results import summarize_results
+from phygrec import ROOT, SEEDS, SPLITS
+from phygrec.evaluation.results import summarize_results
 
 
 def main() -> None:

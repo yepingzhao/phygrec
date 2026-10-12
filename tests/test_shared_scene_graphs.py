@@ -14,9 +14,9 @@ from phygrec.data.shared_scene_graphs import (
     SharedSceneGraphDataset,
     pack_scene_graphs,
 )
-from phygrec.models.inputs import build_compliant_model_input
+from phygrec.models import build_compliant_model_input
 from phygrec.models.solver import PhyGRecSolver
-from phygrec.training.losses import recovery_loss
+from phygrec.training.module import recovery_loss
 
 
 def _write_store(path) -> None:

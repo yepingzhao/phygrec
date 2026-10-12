@@ -17,11 +17,11 @@ from phygrec.baselines.gnn import (
 from phygrec.baselines.physical import FittedCircleOperator, solve_physical_pgd
 from phygrec.baselines.vae import VAEBaseline
 from phygrec.data.shared_scene_graphs import SharedSceneGraphDataset, pack_scene_graphs
-from phygrec.evaluation.expression_metrics import ExpressionMetricAccumulator
-from phygrec.evaluation.expression import evaluate_model
+from phygrec.evaluation.expression import ExpressionMetricAccumulator, evaluate_model
 from phygrec.models.operators import graph_prediction
-from phygrec.protocol import ROOT, benchmark_directory
-from phygrec.transforms import normalized_log
+from phygrec import ROOT
+from phygrec.data import benchmark_directory
+from phygrec.utils import normalized_log
 
 
 MODELS = {

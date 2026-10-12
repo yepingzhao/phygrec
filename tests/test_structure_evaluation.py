@@ -6,10 +6,10 @@ import pytest
 pytest.importorskip("scanpy", reason="Install the structure extra for downstream scoring tests")
 pytest.importorskip("leidenalg", reason="Install the structure extra for downstream scoring tests")
 
-from phygrec.experiments.reproduce import run
-from phygrec.experiments.results import EXPRESSION_METRICS, summarize_results
+from reproduce import run
+from phygrec.evaluation.results import EXPRESSION_METRICS, summarize_results
 from phygrec.evaluation.structure import PhysicalCellAccumulator, load_reference
-from phygrec.experiments.results import STRUCTURE_METRICS
+from phygrec.evaluation.results import STRUCTURE_METRICS
 from phygrec.evaluation.structure_metrics import (
     CLASS_ORDER, MARKER_PROGRAMS, annotation_metric_record, annotation_protocol,
     clustering_metrics, independent_pca,

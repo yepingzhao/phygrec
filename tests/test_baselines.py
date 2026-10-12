@@ -4,7 +4,7 @@ import pytest
 import torch
 
 from phygrec.baselines import runner
-from phygrec.protocol import SEEDS
+from phygrec import SEEDS
 from phygrec.baselines.physical import FittedCircleOperator, solve_physical_pgd
 from phygrec.data.shared_scene_graphs import pack_scene_graphs
 from test_shared_scene_graphs import _write_store

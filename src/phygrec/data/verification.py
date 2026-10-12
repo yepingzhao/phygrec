@@ -7,10 +7,10 @@ from pathlib import PurePosixPath
 
 import h5py
 
-from phygrec.data.hashing import sha256_file
+from phygrec.utils import sha256_file
 
 
-from phygrec.protocol import DATA
+from phygrec import DATA
 
 
 def verify_scene_split_metadata(handle: h5py.File, split: str) -> None:

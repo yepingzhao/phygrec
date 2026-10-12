@@ -10,8 +10,8 @@ from torch.utils.checkpoint import checkpoint
 
 from phygrec.models.modulation import AdaptiveIncrementModulation
 from phygrec.models.operators import CircleOverlapOperator, graph_prediction
-from phygrec.protocol import ABLATIONS, Ablation
-from phygrec.transforms import _inverse_softplus_scalar
+from phygrec import ABLATIONS, Ablation
+from phygrec.utils import inverse_softplus_scalar
 
 
 class UnrolledRecoverySolver(nn.Module):
@@ -26,7 +26,7 @@ class UnrolledRecoverySolver(nn.Module):
         robust_threshold_init, robust_barron_shape_init = 1.0, 1.0
 
         self.step_logits = nn.Parameter(
-            torch.full((iterations,), _inverse_softplus_scalar(0.2))
+            torch.full((iterations,), inverse_softplus_scalar(0.2))
         )
         initial_momentum = 0.5 / (1.0 + math.exp(3.0))
         initial_momentum_logit = math.log(initial_momentum / (1.0 - initial_momentum))
@@ -40,10 +40,10 @@ class UnrolledRecoverySolver(nn.Module):
         threshold_logit = torch.log(torch.expm1(torch.tensor(robust_threshold_init)))
         self.robust_threshold_logits = nn.Parameter(threshold_logit.repeat(iterations))
         shape_logit = torch.tensor(
-            _inverse_softplus_scalar(2.0 - float(robust_barron_shape_init))
+            inverse_softplus_scalar(2.0 - float(robust_barron_shape_init))
         )
         self.robust_shape_logits = nn.Parameter(shape_logit.repeat(iterations))
-        initial_layerscale = torch.tensor(_inverse_softplus_scalar(1.0))
+        initial_layerscale = torch.tensor(inverse_softplus_scalar(1.0))
         self.iteration_layerscale_logits = nn.Parameter(
             initial_layerscale.repeat(iterations)
         )

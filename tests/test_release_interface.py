@@ -3,8 +3,7 @@
 import pytest
 import torch
 
-from phygrec.training.checkpoints import release_hyperparameters
-from phygrec.training.module import PhyGRecModule
+from phygrec.training.module import PhyGRecModule, release_hyperparameters
 
 
 @pytest.mark.parametrize("ablation,count", [

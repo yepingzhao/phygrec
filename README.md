@@ -152,17 +152,16 @@ To train and evaluate one PhyGRec configuration:
 
 ```bash
 phygrec-cli fit --config configs/main/seed20260816.yaml
-python scripts/select_checkpoint.py --split main --seed 20260816
-python scripts/evaluate.py --split main --seed 20260816 --checkpoint PATH_FROM_SELECTOR
+python scripts/evaluate.py --split main --seed 20260816
 ```
 
-Replace `PATH_FROM_SELECTOR` with the selector's JSON `checkpoint` value. For an
-ablation, use its YAML and pass `--variant` to the selector:
+Training records its best validation checkpoint automatically. Evaluation reads
+that record; use `--checkpoint PATH` to score an explicitly supplied checkpoint.
+For an ablation, use its YAML and pass `--variant` to evaluation:
 
 ```bash
 phygrec-cli fit --config configs/ablation/gcc/seed20260816.yaml
-python scripts/select_checkpoint.py --variant gcc --seed 20260816
-python scripts/evaluate.py --split main --seed 20260816 --checkpoint PATH_FROM_SELECTOR
+python scripts/evaluate.py --split main --seed 20260816 --variant gcc
 ```
 
 Individual baseline commands are:
@@ -179,7 +178,7 @@ and evaluation.
 **Public checkpoints will be released after retraining with the finalized code.**
 PhyGRec `--evaluate-only` expects validation-selected checkpoints at
 `../phygrec-data/checkpoints/{main,a9,l7,na}/seedSEED.ckpt`. Ablation evaluation
-selects previously trained removal checkpoints from validation records and also
+reads the best-checkpoint records produced during removal training and also
 requires the main checkpoints. Baseline `--evaluate-only` uses existing
 `runs/baselines/METHOD/SPLIT/seedSEED/best.pt` files.
 
@@ -208,6 +207,10 @@ the detached median of receiver and valid donor-slot totals across the packed
 batch. Start repeated training attempts in a fresh output directory: existing
 validation points are never overwritten.
 
+The validation callback updates `best.json` beside its `val_epoch_*.json` records
+whenever a checkpoint improves the score. This records the checkpoint and score
+report paths without copying the weights or running a separate selection step.
+
 Expression metrics are Count-MAE, Log-MAE, relative L1, Count-RMSE, Log-RMSE and
 relative L2 over receiver-scene entries. Relative L2 averages each receiver's
 error norm divided by its Reference norm, floored at one. Summaries report mean
@@ -229,22 +232,34 @@ With `--structure`, these files also contain annotation and clustering results.
 
 ```text
 configs/                  # Fixed main, LOCO, ablation and baseline configurations
-scripts/                  # Reproduction, evaluation, selection and verification entry points
+scripts/                  # Reproduction, evaluation and benchmark verification
 src/phygrec/
   models/                 # Recovery solver, circle operator, AIM, GCC and observable inputs
-  training/               # Lightning module/CLI, loss, checkpoints and validation callback
-  evaluation/             # Expression metrics, physical-cell aggregation and scoring
-  experiments/            # Reproduction, validation selection and seed/fold summaries
-  data/                   # Scene stores, batching, hashes and benchmark verification
+  training/               # Lightning training, checkpoints, validation and selection
+  evaluation/             # Expression/structure scoring and seed/fold summaries
+  data/                   # Benchmark paths, scene stores, batching and verification
   baselines/              # Seven comparison methods and their training/evaluation CLI
-  protocol.py             # Published splits, seeds and repository-relative paths
-  transforms.py           # Shared numerical transforms
+  __init__.py             # Published splits, seeds, ablations and release paths
+  utils.py                # Shared file hashing and numerical transforms
 tests/                    # Model, protocol and evaluation checks
 ```
 
-The main method and baselines share `evaluation/` and the summaries in
-`experiments/results.py`. Published ablation scores and original parameter counts
-are retained in the separate data release.
+`models/` contains the numerical method without training or evaluation dependencies.
+The main method and baselines share `evaluation/`, which scores supplied model
+instances. `scripts/evaluate.py` loads PhyGRec checkpoints, and `scripts/reproduce.py`
+runs training and test scoring. The callback in `training/validation.py` selects
+the best checkpoint during training; `evaluation/results.py` summarizes seeds
+and folds.
+Within `baselines/`, `runner.py` keeps fixed model construction, training,
+validation selection and test execution together. Shared circle geometry lives
+in `models/operators.py`. Training losses and checkpoint validation live with the
+Lightning module; expression metrics live with their evaluation loop. Clustering
+calculations stay in `evaluation/structure_metrics.py` so optional dependencies
+load only inside the isolated scoring process.
+
+Repository and companion-data paths follow the editable installation layout shown
+above. Published ablation scores and original parameter counts are retained in the
+separate data release.
 
 ## License
 

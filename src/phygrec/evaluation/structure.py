@@ -11,8 +11,8 @@ import tempfile
 
 import numpy as np
 
-from phygrec.data.hashing import sha256_file
-from phygrec.protocol import DATA, SPLITS
+from phygrec.utils import sha256_file
+from phygrec import DATA, SPLITS
 
 
 RESOURCES = DATA / "structure"

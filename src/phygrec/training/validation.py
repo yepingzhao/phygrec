@@ -1,8 +1,9 @@
-"""In-Trainer exact micro-averaged evaluation for shared-scene val stores."""
+"""In-Trainer validation and best-checkpoint selection for shared-scene stores."""
 
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 import platform
 
@@ -10,9 +11,29 @@ import torch
 from lightning.pytorch.callbacks import Callback
 
 
-from phygrec.data.hashing import sha256_file
+from phygrec.utils import sha256_file
 from phygrec.evaluation.expression import evaluate_validation
-from phygrec.protocol import ROOT as REPOSITORY_ROOT
+from phygrec import ROOT as REPOSITORY_ROOT
+from phygrec import SEEDS, SPLITS, VARIANTS
+
+
+def load_best_checkpoint(
+    split: str, seed: int, root: Path = REPOSITORY_ROOT, *, variant: str | None = None
+) -> dict:
+    """Read the checkpoint selected by the training validation callback."""
+    if split not in SPLITS or seed not in SEEDS:
+        raise ValueError("Unknown split or seed")
+    if variant is not None and (split != "main" or variant not in VARIANTS):
+        raise ValueError("Ablations require the main split and a known variant")
+    group = Path("ablation") / variant if variant else Path(split)
+    name = variant or ("full" if split == "main" else split)
+    run = root / "runs" / group / f"seed{seed}" / "val/runs" / f"phygrec_{name}_seed{seed}"
+    result = json.loads((run / "best.json").read_text())
+    for key in ("checkpoint", "score_report"):
+        if not (root / result[key]).is_file():
+            raise FileNotFoundError(root / result[key])
+    identity = {"variant": variant} if variant is not None else {"split": split}
+    return {**identity, "seed": seed, **result}
 
 
 class PeriodicSharedSceneValidationCallback(Callback):
@@ -121,6 +142,20 @@ class PeriodicSharedSceneValidationCallback(Callback):
         score_path.write_text(
             json.dumps(payload, indent=2, sort_keys=True, allow_nan=False) + "\n"
         )
+        score = float(val["overall"]["combined_recovery"])
+        if not math.isfinite(score):
+            raise ValueError(f"Non-finite validation score: {score_path}")
+        best_path = self.run_root / "best.json"
+        best = json.loads(best_path.read_text()) if best_path.exists() else None
+        if best is None or (score, -completed_epochs) > (
+            best["val_combined_recovery"], -best["selected_epoch"]
+        ):
+            best_path.write_text(json.dumps({
+                "selected_epoch": completed_epochs,
+                "val_combined_recovery": score,
+                "checkpoint": audit["path"],
+                "score_report": str(score_path.relative_to(REPOSITORY_ROOT)),
+            }, indent=2, allow_nan=False) + "\n")
         if trainer.logger is not None:
             trainer.logger.log_metrics(
                 {
