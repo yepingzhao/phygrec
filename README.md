@@ -237,7 +237,7 @@ src/phygrec/
   models/                 # Recovery solver, circle operator, AIM, GCC and observable inputs
   training/               # Lightning training, checkpoints, validation and selection
   evaluation/             # Expression/structure scoring and seed/fold summaries
-  data/                   # Benchmark paths, scene stores, batching and verification
+  data/                   # Benchmark paths, scene stores and batching
   baselines/              # Seven comparison methods and their training/evaluation CLI
   __init__.py             # Published splits, seeds, ablations and release paths
   utils.py                # Shared file hashing and numerical transforms

@@ -71,16 +71,16 @@ class BaselinePredictor(torch.nn.Module):
     def forward(self, batch: dict) -> torch.Tensor:
         if self.method == "physical_pgd":
             total = batch["initial"].sum(dim=1)
-            fraction, _ = self.model(
+            fraction = self.model(
                 batch["distance"], batch["candidate_mask"], total[batch["source"]],
                 total[batch["donors"].clamp_min(0)], batch.get("observation_graph_index"),
             )
             config = load_config(self.method)
-            return solve_physical_pgd(batch, fraction, config["step_size"], config["iterations"])[0]
+            return solve_physical_pgd(batch, fraction, config["step_size"], config["iterations"])
         keys = ("mixed", "source", "initial") if self.method == "vae" else (
             "mixed", "source", "initial", "donors", "distance", "candidate_mask",
         )
-        prediction, _ = self.model({key: batch[key] for key in keys})
+        prediction = self.model({key: batch[key] for key in keys})
         return prediction.clamp_min(0.0)
 
 
@@ -123,7 +123,7 @@ def evaluate_validation(model: BaselinePredictor, data: DataLoader, device: torc
 def physical_fit_loss(operator: FittedCircleOperator, batch: dict) -> torch.Tensor:
     """Fit geometry from observable totals and train-only labeled profiles."""
     total = batch["initial"].sum(dim=1)
-    fraction, _ = operator(
+    fraction = operator(
         batch["distance"], batch["candidate_mask"], total[batch["source"]],
         total[batch["donors"].clamp_min(0)], batch.get("observation_graph_index"),
     )

@@ -5,6 +5,7 @@ import torch
 
 from phygrec.baselines import runner
 from phygrec import SEEDS
+from phygrec.baselines.gnn import _candidate_edge_index
 from phygrec.baselines.physical import FittedCircleOperator, solve_physical_pgd
 from phygrec.data.shared_scene_graphs import pack_scene_graphs
 from test_shared_scene_graphs import _write_store
@@ -61,8 +62,30 @@ def test_physical_fit_and_diagonal_pgd_use_only_fixed_operator():
     assert all(p.grad is not None and torch.isfinite(p.grad).all() for p in operator.parameters())
     batch = graph()
     batch["mixed"] = batch["initial"][batch["source"]].clone()
-    prediction, _ = solve_physical_pgd(batch, torch.zeros_like(batch["distance"]), .1, 100)
+    prediction = solve_physical_pgd(batch, torch.zeros_like(batch["distance"]), .1, 100)
     assert torch.equal(prediction, batch["initial"])
+
+
+def test_candidate_edges_are_sorted_unique_bidirectional_and_masked():
+    batch = {
+        "source": torch.tensor([2, 0, 1]),
+        "donors": torch.tensor([[0, 0, 2], [2, 1, -1], [1, 2, 0]]),
+        "candidate_mask": torch.tensor([
+            [True, True, True], [True, False, False], [True, True, False],
+        ]),
+    }
+    expected = torch.tensor([[0, 1, 2, 2], [2, 2, 0, 1]])
+    assert torch.equal(_candidate_edge_index(batch), expected)
+
+
+@pytest.mark.parametrize("method", ["gat", "gatv2", "gcn", "graphsage"])
+def test_graph_baselines_preserve_initial_expression_without_neighbor_edges(method):
+    batch = graph()
+    batch["donors"] = batch["source"][:, None].expand_as(batch["donors"])
+    model = runner.BaselinePredictor(method).eval()
+    assert torch.equal(model(batch), batch["initial"])
+    batch["candidate_mask"].zero_()
+    assert torch.equal(model(batch), batch["initial"])
 
 
 def test_configs_cannot_silently_change_the_recorded_architecture(tmp_path, monkeypatch):

@@ -33,7 +33,7 @@ class FittedCircleOperator(nn.Module):
         receiver_scale_raw = self.receiver_scale_log
         return {'base_radius': torch.exp(radius_raw.clamp(-4.0, 8.0)), 'total_exponent': nn.functional.softplus(self.total_exponent_logit), 'receiver_scale': torch.exp(receiver_scale_raw.clamp(-3.0, 3.0)), 'transfer_efficiency': torch.sigmoid(self.efficiency_logit)}
 
-    def forward(self, distance: torch.Tensor, candidate_mask: torch.Tensor, receiver_total: torch.Tensor, donor_total: torch.Tensor, observation_graph_index: torch.Tensor | None=None) -> tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, distance: torch.Tensor, candidate_mask: torch.Tensor, receiver_total: torch.Tensor, donor_total: torch.Tensor, observation_graph_index: torch.Tensor | None=None) -> torch.Tensor:
         if distance.shape != candidate_mask.shape or donor_total.shape != distance.shape:
             raise ValueError('candidate edge tensor shapes must match')
         if receiver_total.shape != distance.shape[:1]:
@@ -69,9 +69,9 @@ class FittedCircleOperator(nn.Module):
         row_total = fraction.sum(dim=1)
         row_scale = torch.clamp(self.maximum_row_crosstalk / row_total.clamp_min(1e-08), max=1.0)
         fraction = fraction * row_scale[:, None]
-        return (fraction, fraction.sum(dim=1))
+        return fraction
 
-def solve_physical_pgd(batch: dict[str, Any], fraction: torch.Tensor, step: float, iterations: int) -> tuple[torch.Tensor, torch.Tensor]:
+def solve_physical_pgd(batch: dict[str, Any], fraction: torch.Tensor, step: float, iterations: int) -> torch.Tensor:
     source, donors, mask = (batch['source'], batch['donors'], batch['candidate_mask'])
     profile = batch['initial'].clone()
     degree = torch.zeros(len(profile), device=profile.device)
@@ -91,4 +91,4 @@ def solve_physical_pgd(batch: dict[str, Any], fraction: torch.Tensor, step: floa
             if m.any():
                 grad.index_add_(0, donors[m, slot], residual[m] * fraction[m, slot].unsqueeze(-1))
         profile = torch.relu(profile - step * grad / degree)
-    return (profile, graph_prediction(profile, source, donors, fraction, mask))
+    return profile

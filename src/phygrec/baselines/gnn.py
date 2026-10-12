@@ -4,15 +4,15 @@ from __future__ import annotations
 import torch
 from torch import nn
 import torch_geometric.nn as pyg_nn
-from torch_geometric.data import Data
 
-def fixed_distance_fraction(distance: torch.Tensor, candidate_mask: torch.Tensor, prior_scale: float=0.5, distance_temperature: float=1.0) -> torch.Tensor:
-    """Fixed geometric prior fraction, replicating graph_builder's kernel.
+def fixed_distance_fraction(distance: torch.Tensor, candidate_mask: torch.Tensor) -> torch.Tensor:
+    """The fixed geometric prior used by the MPNN baseline.
 
     Per observation row: ``prior_scale * exp(-delta / (T * scale))`` where
     ``delta`` is distance from the row minimum and ``scale`` is the median of
     the up-to-7 smallest positive deltas (floor 1.0). Zero outside the mask.
     """
+    prior_scale, distance_temperature = 0.5, 1.0
     if distance.shape != candidate_mask.shape:
         raise ValueError('distance and candidate_mask shapes must match')
     effective_mask = candidate_mask & torch.isfinite(distance)
@@ -33,11 +33,7 @@ def fixed_distance_fraction(distance: torch.Tensor, candidate_mask: torch.Tensor
     return torch.where(effective_mask, float(prior_scale) * score, torch.zeros_like(score))
 
 
-def graph_fraction(graph: dict, prior_scale: float = 0.5, distance_temperature: float = 1.0) -> torch.Tensor:
-    return fixed_distance_fraction(graph['distance'], graph['candidate_mask'], prior_scale, distance_temperature)
-
-
-def _build_candidate_graph(graph: dict, node_features: torch.Tensor | None=None) -> Data:
+def _candidate_edge_index(graph: dict) -> torch.Tensor:
     """Build the undirected observable receiver/donor candidate graph."""
     donors, donor_mask, source = (graph['donors'], graph['candidate_mask'], graph['source'])
     edge_pairs = set()
@@ -46,16 +42,12 @@ def _build_candidate_graph(graph: dict, node_features: torch.Tensor | None=None)
         if torch.any(m):
             for s, d in zip(source[m].cpu().tolist(), donors[m, slot].cpu().tolist()):
                 if s != d:
-                    edge_pairs.add((min(s, d), max(s, d)))
                     edge_pairs.add((s, d))
                     edge_pairs.add((d, s))
     edge_list = sorted(edge_pairs)
     if not edge_list:
-        edge_index = torch.zeros((2, 0), dtype=torch.long, device=source.device)
-    else:
-        edges = torch.tensor(edge_list, dtype=torch.long, device=source.device).t()
-        edge_index = edges
-    return Data(x=graph['initial'] if node_features is None else node_features, edge_index=edge_index)
+        return torch.zeros((2, 0), dtype=torch.long, device=source.device)
+    return torch.tensor(edge_list, dtype=torch.long, device=source.device).t()
 
 class GATBaseline(nn.Module):
     """Graph Attention Network over the observable candidate graph."""
@@ -65,12 +57,8 @@ class GATBaseline(nn.Module):
         hidden = 512
         heads = 4
         n_layers = 3
-        prior_scale = 0.5
-        distance_temperature = 1.0
         super().__init__()
         self.n_layers = n_layers
-        self.prior_scale = float(prior_scale)
-        self.distance_temperature = float(distance_temperature)
         convs, norms = ([], [])
         for i in range(n_layers):
             in_dim = n_genes if i == 0 else hidden * heads
@@ -85,28 +73,21 @@ class GATBaseline(nn.Module):
         self.norms = nn.ModuleList(norms)
         self.head = nn.Linear(hidden, n_genes)
 
-    def forward(self, graph: dict) -> tuple[torch.Tensor, torch.Tensor]:
-        data = _build_candidate_graph(graph)
-        if data.edge_index.numel() == 0:
+    def forward(self, graph: dict) -> torch.Tensor:
+        edge_index = _candidate_edge_index(graph)
+        if edge_index.numel() == 0:
             pred_clean = graph['initial'].clone()
         else:
-            x = data.x
+            x = graph['initial']
             for conv, norm in zip(self.convs, self.norms):
-                h = conv(x, data.edge_index)
+                h = conv(x, edge_index)
                 if h.shape[-1] == x.shape[-1]:
                     x = norm(torch.relu(h) + x)
                 else:
                     x = norm(torch.relu(h))
             delta = self.head(x)
             pred_clean = graph['initial'] + delta
-        mixed, source = (graph['mixed'], graph['source'])
-        donors = graph['donors']
-        fraction = graph_fraction(graph, self.prior_scale, self.distance_temperature)
-        donor_mask = graph['candidate_mask']
-        safe_donors = donors.clamp_min(0)
-        pred_obs = pred_clean[source] + (pred_clean[safe_donors] * fraction.unsqueeze(-1) * donor_mask.unsqueeze(-1).float()).sum(dim=1)
-        residual = pred_obs - mixed
-        return (pred_clean, residual)
+        return pred_clean
 
 class BipartiteMPNNBaseline(nn.Module):
     """Bipartite MPNN with vectorized donor aggregation for memory efficiency."""
@@ -115,20 +96,16 @@ class BipartiteMPNNBaseline(nn.Module):
         n_genes = 1000
         hidden = 256
         n_layers = 2
-        prior_scale = 0.5
-        distance_temperature = 1.0
         super().__init__()
         self.n_layers = n_layers
-        self.prior_scale = float(prior_scale)
-        self.distance_temperature = float(distance_temperature)
         self.msg_net = nn.Sequential(nn.Linear(n_genes * 2, hidden), nn.ReLU(inplace=True), nn.Linear(hidden, n_genes))
         self.gru = nn.GRUCell(n_genes, n_genes)
         self.bn = nn.BatchNorm1d(n_genes)
 
-    def forward(self, graph: dict) -> tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, graph: dict) -> torch.Tensor:
         mixed, source = (graph['mixed'], graph['source'])
         donors = graph['donors']
-        fraction = graph_fraction(graph, self.prior_scale, self.distance_temperature)
+        fraction = fixed_distance_fraction(graph['distance'], graph['candidate_mask'])
         donor_mask = graph['candidate_mask']
         profile = graph['initial'].clone()
         for _ in range(self.n_layers):
@@ -154,26 +131,17 @@ class BipartiteMPNNBaseline(nn.Module):
             delta = self.gru(msg_sum, profile)
             delta = self.bn(delta)
             profile = delta * 1.0 + profile
-        pred_per_obs = profile[source]
-        slot_anchors = profile[donors.clamp_min(0)]
-        slot_contrib = slot_anchors * fraction.unsqueeze(-1) * donor_mask.unsqueeze(-1).float()
-        final_residual = pred_per_obs + slot_contrib.sum(dim=1) - mixed
-        return (profile, final_residual)
+        return profile
 
 class _GraphConvBaselineBase(nn.Module):
-    """Shared graph-conv baseline: conv stack over the source-source graph,
-    residual delta output, then physical residual via graph_fraction."""
+    """Shared graph-convolution stack with a residual expression output."""
 
     def __init__(self, n_genes, hidden, n_layers) -> None:
-        prior_scale = 0.5
-        distance_temperature = 1.0
         super().__init__()
         self.n_layers = n_layers
-        self.prior_scale = float(prior_scale)
-        self.distance_temperature = float(distance_temperature)
         self.convs = self._build_convs(n_genes, hidden, n_layers)
         self.norms = nn.ModuleList((nn.LayerNorm(dim) for dim in self._norm_dims(n_genes, hidden, n_layers)))
-        self.head = nn.Linear(self._head_in_dim(hidden), n_genes)
+        self.head = nn.Linear(hidden, n_genes)
 
     def _build_convs(self, n_genes: int, hidden: int, n_layers: int) -> nn.ModuleList:
         raise NotImplementedError
@@ -181,32 +149,21 @@ class _GraphConvBaselineBase(nn.Module):
     def _norm_dims(self, n_genes: int, hidden: int, n_layers: int) -> list[int]:
         return [hidden] * n_layers
 
-    def _head_in_dim(self, hidden: int) -> int:
-        return hidden
-
-    def forward(self, graph: dict) -> tuple[torch.Tensor, torch.Tensor]:
-        node_features = graph['initial']
-        data = _build_candidate_graph(graph, node_features)
-        if data.edge_index.numel() == 0:
+    def forward(self, graph: dict) -> torch.Tensor:
+        edge_index = _candidate_edge_index(graph)
+        if edge_index.numel() == 0:
             pred_clean = graph['initial'].clone()
         else:
-            x = data.x
+            x = graph['initial']
             for conv, norm in zip(self.convs, self.norms):
-                h = conv(x, data.edge_index)
+                h = conv(x, edge_index)
                 if h.shape[-1] == x.shape[-1]:
                     x = norm(torch.relu(h) + x)
                 else:
                     x = norm(torch.relu(h))
             delta = self.head(x)
             pred_clean = graph['initial'] + delta
-        mixed, source = (graph['mixed'], graph['source'])
-        donors = graph['donors']
-        fraction = graph_fraction(graph, self.prior_scale, self.distance_temperature)
-        donor_mask = graph['candidate_mask']
-        safe_donors = donors.clamp_min(0)
-        pred_obs = pred_clean[source] + (pred_clean[safe_donors] * fraction.unsqueeze(-1) * donor_mask.unsqueeze(-1).float()).sum(dim=1)
-        residual = pred_obs - mixed
-        return (pred_clean, residual)
+        return pred_clean
 
 class GCNBaseline(_GraphConvBaselineBase):
     """Graph Convolutional Network baseline."""

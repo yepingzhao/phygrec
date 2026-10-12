@@ -18,7 +18,7 @@ class VAEBaseline(nn.Module):
         )
         self.mean_head = nn.Linear(512, 1000)
 
-    def forward(self, graph: dict) -> tuple[torch.Tensor, torch.Tensor]:
+    def forward(self, graph: dict) -> torch.Tensor:
         mixed, source = graph["mixed"], graph["source"]
         h = self.encoder(mixed)
         mu, logvar = self.mu(h), self.logvar(h).clamp(min=-10.0, max=10.0)
@@ -30,4 +30,4 @@ class VAEBaseline(nn.Module):
         pred_clean.index_add_(0, source, pred_per_obs)
         count.index_add_(0, source, torch.ones(len(source), device=mixed.device))
         pred_clean = pred_clean / count.clamp_min(1.0).unsqueeze(1)
-        return pred_clean + graph["initial"], torch.zeros_like(mixed)
+        return pred_clean + graph["initial"]

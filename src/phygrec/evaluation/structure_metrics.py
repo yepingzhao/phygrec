@@ -47,17 +47,6 @@ MARKER_PROGRAMS = {
 CLASS_ORDER = tuple(MARKER_PROGRAMS)
 
 
-ANNOTATION_METRICS = (
-    "accuracy",
-    "macro_precision",
-    "balanced_accuracy",
-    "macro_f1",
-    "mcc",
-    "cohen_kappa",
-    "macro_average_precision",
-)
-
-
 def independent_pca(expression: np.ndarray) -> np.ndarray:
     scaled = StandardScaler().fit_transform(normalize_log1p(expression)).astype(
         np.float32, copy=False
