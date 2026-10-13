@@ -9,7 +9,7 @@ import subprocess
 import sys
 
 
-from phygrec import DATA, ROOT, SEEDS, VARIANTS
+from phygrec import ROOT, SEEDS, VARIANTS
 from phygrec.evaluation.scoring import summarize_results
 
 
@@ -43,7 +43,7 @@ def run(experiment: str, seeds: list[int], *, evaluate_only: bool = False,
             commands.append([sys.executable, "scripts/evaluate.py", "--split", split,
                              "--seed", str(seed)])
             if evaluate_only and not variant:
-                commands[-1] += ["--checkpoint", str(DATA / f"checkpoints/{split}/seed{seed}.ckpt")]
+                commands[-1] += ["--checkpoint", str(ROOT / f"checkpoints/{split}/seed{seed}.ckpt")]
             if variant:
                 commands[-1] += ["--variant", variant]
             if structure:
@@ -65,7 +65,7 @@ def run(experiment: str, seeds: list[int], *, evaluate_only: bool = False,
         if not evaluate_only:
             subprocess.run(item["commands"][0], cwd=ROOT, check=True)
         if evaluate_only and not variant:
-            selected = {"checkpoint": str(DATA / f"checkpoints/{split}/seed{seed}.ckpt")}
+            selected = {"checkpoint": str(ROOT / f"checkpoints/{split}/seed{seed}.ckpt")}
         else:
             selected = load_best_checkpoint(split, seed, variant=variant)
         checkpoint = Path(selected["checkpoint"])

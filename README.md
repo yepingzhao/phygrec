@@ -191,9 +191,15 @@ For `--evaluate-only`, the experiment entry points use these checkpoint location
 
 | Experiment | Expected checkpoint source |
 | --- | --- |
-| PhyGRec main / LOCO | `data/checkpoints/{main,a9,l7,na}/seedSEED.ckpt` |
+| PhyGRec main / LOCO | `checkpoints/{main,a9,l7,na}/seedSEED.ckpt` |
 | PhyGRec ablations | Locally selected ablation checkpoints, plus the main checkpoints above |
 | Baselines | `runs/baselines/METHOD/SPLIT/seedSEED/best.pt` |
+
+### Paper result records
+
+`results/ablation_expression.json` contains the reported ablation scores, selected
+epochs and parameter counts for the original experiment checkpoints. Files in
+`results/` accompany the paper; new evaluations are saved to `runs/results/`.
 
 ## Training protocol
 
@@ -237,7 +243,10 @@ the earliest checkpoint with the highest recovery score is selected.
 ## Code structure
 
 ```text
-data/                     # Prepared benchmark and evaluation resources (see data/readme.md)
+data/                     # Prepared benchmark and evaluation resources
+checkpoints/              # Public pretrained weights (pending release)
+results/                  # Paper result records
+runs/                     # Generated training logs, checkpoints and evaluation results
 configs/                  # Fixed main, LOCO, ablation and baseline settings
 scripts/
   main.py                 # PhyGRec experiment orchestration
@@ -263,7 +272,9 @@ The main method and baselines share evaluation functions. Training selects
 checkpoints; scripts coordinate experiments; `evaluation/scoring.py` aggregates
 cells and summarizes folds and seeds. Optional annotation and clustering modules
 load inside the isolated scoring process. Benchmark resources live in
-`data/`; `src/phygrec/data/` contains the Python data-loading code.
+`data/`; `src/phygrec/data/` contains the Python data-loading code. Data, published
+weights and paper result records are distributed separately and excluded from Git.
+Each has a `MANIFEST.json` with paths relative to its own directory.
 
 ### Tests
 

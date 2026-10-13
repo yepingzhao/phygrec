@@ -7,6 +7,8 @@ dist/
 runs/
 .venv/
 
-# Prepared data and checkpoints are distributed separately.
+# Data, pretrained weights and paper result records are distributed separately.
 /data/*
 !/data/readme.md
+/checkpoints/
+/results/

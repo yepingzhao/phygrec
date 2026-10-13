@@ -27,9 +27,6 @@ data/
     l7.npz
     na.npz
     manifest.json
-  results/
-    ablation_expression.json
-  checkpoints/  # Public checkpoints (pending release)
 ```
 
 Extract the data contents directly here, so that `data/MANIFEST.json` and
@@ -92,27 +89,15 @@ python scripts/main.py --experiment main --seeds 20260816 --dry-run
 python scripts/main.py --experiment main --seeds 20260816
 ```
 
-Provide every file listed in `MANIFEST.json`, including any listed checkpoints.
-Manifest paths are relative to this directory. Verification checks SHA-256 hashes,
+Provide every file listed in `data/MANIFEST.json`. Manifest paths are relative
+to `data/`. Verification checks SHA-256 hashes,
 HDF5 schema, gene order, split identity isolation and LOCO chip exclusion.
 
-`results/ablation_expression.json` contains the reported ablation scores, selected
-epochs and parameter counts for the original experiment checkpoints. The current
-full-model parameter count is documented in the
-[repository README](../README.md#training-protocol). New experiment scores are
-saved to `runs/results/`.
+## Related resources
 
-## Checkpoints
+Pretrained weights belong in the repository's `checkpoints/` directory, and paper
+result records belong in `results/`. Each directory has its own `MANIFEST.json`.
+Training and evaluation write new outputs under `runs/`.
 
-Public checkpoints are pending retraining with this implementation. Use
-checkpoints trained with the supplied code and configurations. After training,
-evaluate the validation-selected checkpoint:
-
-```bash
-python scripts/evaluate.py --split main --seed 20260816
-```
-
-When public checkpoints are available, PhyGRec `--evaluate-only` expects
-`data/checkpoints/{main,a9,l7,na}/seedSEED.ckpt`. Baseline checkpoints remain under
-`runs/baselines/`; ablation evaluation uses locally selected ablation checkpoints.
-See the [repository README](../README.md) for all experiment commands and protocols.
+See the [repository README](../README.md) for checkpoint availability, experiment
+commands and evaluation protocols.
