@@ -26,8 +26,7 @@ def load_best_checkpoint(
     if variant is not None and (split != "main" or variant not in VARIANTS):
         raise ValueError("Ablations require the main split and a known variant")
     group = Path("ablation") / variant if variant else Path(split)
-    name = variant or ("full" if split == "main" else split)
-    run = root / "runs" / group / f"seed{seed}" / "val/runs" / f"phygrec_{name}_seed{seed}"
+    run = root / "runs" / group / f"seed{seed}" / "val"
     result = json.loads((run / "best.json").read_text())
     for key in ("checkpoint", "score_report"):
         if not (root / result[key]).is_file():
@@ -62,7 +61,7 @@ class PeriodicSharedSceneValidationCallback(Callback):
 
     @property
     def run_root(self) -> Path:
-        return REPOSITORY_ROOT / self.output_root / "runs" / self.run_name
+        return REPOSITORY_ROOT / self.output_root
 
     def _checkpoint_audit(
         self, path: Path, completed_epochs: int, expected_step: int

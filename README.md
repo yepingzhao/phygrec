@@ -194,8 +194,22 @@ python scripts/main.py --experiment main --evaluate-only
 python scripts/baselines.py reproduce --method all --experiment main --evaluate-only
 ```
 
-PhyGRec reads `best.json` from each run's validation directory and loads the
-checkpoint it identifies. Baselines load `best.pt` from each run directory.
+PhyGRec stores CSV logs directly in `logs/` and validation records in `val/`
+within each run directory:
+
+```text
+runs/main/seed20260816/
+  logs/                     # CSV training logs
+  checkpoints/              # Training checkpoints
+  val/
+    best.json               # Selected checkpoint and validation report paths
+    val_epoch_010.json      # Per-validation scores
+    checkpoints/
+      epoch_010.ckpt        # Validation checkpoint snapshots
+```
+
+Evaluation reads `val/best.json` and loads the checkpoint it identifies.
+Baselines load `best.pt` from each run directory.
 Shared PhyGRec runs should retain their selected checkpoint, `best.json` and
 referenced validation report with the same paths under `runs/`.
 

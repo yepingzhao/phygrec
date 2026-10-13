@@ -44,5 +44,5 @@ trainer:
     class_path: lightning.pytorch.loggers.CSVLogger
     init_args:
       save_dir: runs/ablation/rb/seed20260818/logs
-      name: logs
-      version: run
+      name: ""
+      version: ""
