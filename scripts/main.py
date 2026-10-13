@@ -42,8 +42,6 @@ def run(experiment: str, seeds: list[int], *, evaluate_only: bool = False,
                 commands.append([sys.executable, "-m", "phygrec.training.cli", "fit", "--config", config])
             commands.append([sys.executable, "scripts/evaluate.py", "--split", split,
                              "--seed", str(seed)])
-            if evaluate_only and not variant:
-                commands[-1] += ["--checkpoint", str(ROOT / f"checkpoints/{split}/seed{seed}.ckpt")]
             if variant:
                 commands[-1] += ["--variant", variant]
             if structure:
@@ -64,10 +62,7 @@ def run(experiment: str, seeds: list[int], *, evaluate_only: bool = False,
         split, seed, variant = item["split"], item["seed"], item["variant"]
         if not evaluate_only:
             subprocess.run(item["commands"][0], cwd=ROOT, check=True)
-        if evaluate_only and not variant:
-            selected = {"checkpoint": str(ROOT / f"checkpoints/{split}/seed{seed}.ckpt")}
-        else:
-            selected = load_best_checkpoint(split, seed, variant=variant)
+        selected = load_best_checkpoint(split, seed, variant=variant)
         checkpoint = Path(selected["checkpoint"])
         if not checkpoint.is_absolute():
             checkpoint = ROOT / checkpoint
@@ -87,7 +82,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--experiment", choices=("main", "loco", "ablation", "all"), required=True)
     parser.add_argument("--seeds", type=int, nargs="+", choices=SEEDS, default=list(SEEDS))
-    parser.add_argument("--evaluate-only", action="store_true", help="Use bundled or previously val-selected checkpoints")
+    parser.add_argument("--evaluate-only", action="store_true", help="Evaluate the checkpoints selected during training")
     parser.add_argument("--dry-run", action="store_true", help="Print the run plan without training or evaluating")
     parser.add_argument("--device", help="Evaluation device; defaults to CUDA when available")
     parser.add_argument("--structure", action="store_true", help="Also run paper annotation and clustering scoring")

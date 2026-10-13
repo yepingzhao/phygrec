@@ -183,23 +183,29 @@ error norm divided by its Reference norm, floored at one. Summaries report mean
 and sample SD across training seeds; a single seed has no sample SD. LOCO first
 averages the three folds equally within each seed.
 
-### Public checkpoints
+### Saved runs and checkpoints
 
-Public checkpoints are pending retraining with this implementation. The commands
-above train models and evaluate their validation-selected checkpoints.
-For `--evaluate-only`, the experiment entry points use these checkpoint locations:
+Each experiment stores its checkpoints, logs and validation records together:
 
-| Experiment | Expected checkpoint source |
+| Experiment | Run directory |
 | --- | --- |
-| PhyGRec main / LOCO | `checkpoints/{main,a9,l7,na}/seedSEED.ckpt` |
-| PhyGRec ablations | Locally selected ablation checkpoints, plus the main checkpoints above |
-| Baselines | `runs/baselines/METHOD/SPLIT/seedSEED/best.pt` |
+| PhyGRec main / LOCO | `runs/{main,a9,l7,na}/seedSEED/` |
+| PhyGRec ablations | `runs/ablation/{rb,aim,gcc}/seedSEED/` |
+| Baselines | `runs/baselines/METHOD/SPLIT/seedSEED/` |
 
-### Paper result records
+To evaluate completed runs without training again:
 
-`results/ablation_expression.json` contains the reported ablation scores, selected
-epochs and parameter counts for the original experiment checkpoints. Files in
-`results/` accompany the paper; new evaluations are saved to `runs/results/`.
+```bash
+python scripts/main.py --experiment main --evaluate-only
+python scripts/baselines.py reproduce --method all --experiment main --evaluate-only
+```
+
+PhyGRec reads `best.json` from each run's validation directory and loads the
+checkpoint it identifies. Baselines load `best.pt` from each run directory.
+Shared PhyGRec runs should retain their selected checkpoint, `best.json` and
+referenced validation report with the same paths under `runs/`.
+
+Pretrained runs will be released after retraining with this implementation.
 
 ## Training protocol
 
@@ -244,8 +250,6 @@ the earliest checkpoint with the highest recovery score is selected.
 
 ```text
 data/                     # Prepared benchmark and evaluation resources
-checkpoints/              # Public pretrained weights (pending release)
-results/                  # Paper result records
 runs/                     # Generated training logs, checkpoints and evaluation results
 configs/                  # Fixed main, LOCO, ablation and baseline settings
 scripts/
@@ -272,9 +276,9 @@ The main method and baselines share evaluation functions. Training selects
 checkpoints; scripts coordinate experiments; `evaluation/scoring.py` aggregates
 cells and summarizes folds and seeds. Optional annotation and clustering modules
 load inside the isolated scoring process. Benchmark resources live in
-`data/`; `src/phygrec/data/` contains the Python data-loading code. Data, published
-weights and paper result records are distributed separately and excluded from Git.
-Each has a `MANIFEST.json` with paths relative to its own directory.
+`data/`; `src/phygrec/data/` contains the Python data-loading code. The repository
+tracks source code and documentation; data files and generated runs are excluded
+from Git.
 
 ### Tests
 

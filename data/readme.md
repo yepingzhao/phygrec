@@ -93,11 +93,11 @@ Provide every file listed in `data/MANIFEST.json`. Manifest paths are relative
 to `data/`. Verification checks SHA-256 hashes,
 HDF5 schema, gene order, split identity isolation and LOCO chip exclusion.
 
-## Related resources
+## Experiment outputs
 
-Pretrained weights belong in the repository's `checkpoints/` directory, and paper
-result records belong in `results/`. Each directory has its own `MANIFEST.json`.
-Training and evaluation write new outputs under `runs/`.
+Training checkpoints, logs and validation records are saved in the corresponding
+experiment directories under `runs/`. Evaluation scores and summaries are saved
+to `runs/results/`.
 
-See the [repository README](../README.md) for checkpoint availability, experiment
-commands and evaluation protocols.
+See the [repository README](../README.md#saved-runs-and-checkpoints) for checkpoint
+loading and evaluation commands.
