@@ -79,19 +79,17 @@ python -m pip install -e '.[structure]'
 python scripts/main.py --experiment main --seeds 20260816 --structure
 ```
 
-## Verify and use the data
+## Run experiments
 
 After installing the package and placing the complete data release here:
 
 ```bash
-python scripts/verify_release.py
 python scripts/main.py --experiment main --seeds 20260816 --dry-run
 python scripts/main.py --experiment main --seeds 20260816
 ```
 
-Provide every file listed in `data/MANIFEST.json`. Manifest paths are relative
-to `data/`. Verification checks SHA-256 hashes,
-HDF5 schema, gene order, split identity isolation and LOCO chip exclusion.
+`data/MANIFEST.json` lists the benchmark files and their SHA-256 hashes. Paths
+in the manifest are relative to `data/`.
 
 ## Experiment outputs
 

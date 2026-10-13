@@ -34,12 +34,6 @@ directory. See [data/readme.md](data/readme.md) for the file layout, split defin
 and evaluation resources. The main split should be at
 `data/benchmark/main/{train.h5,val.h5,test.h5,genes.txt}`.
 
-Verify manifest hashes, gene order and split isolation:
-
-```bash
-python scripts/verify_release.py
-```
-
 The prepared benchmark contains mixing scenes and Reference expression targets.
 Model inputs use mixed expression, receiver/candidate indices, distances and masks.
 
@@ -256,7 +250,6 @@ scripts/
   main.py                 # PhyGRec experiment orchestration
   baselines.py            # Baseline training, evaluation and experiments
   evaluate.py             # Evaluate a PhyGRec checkpoint
-  verify_release.py       # Verify the prepared benchmark
 src/phygrec/
   models/                 # Recovery solver, operators, AIM and GCC
   training/               # Lightning training and validation checkpoint selection
