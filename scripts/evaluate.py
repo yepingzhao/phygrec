@@ -27,7 +27,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--split", choices=SPLITS, required=True)
     parser.add_argument("--seed", choices=SEEDS, type=int, required=True)
-    parser.add_argument("--checkpoint", type=Path, help="Checkpoint from a newly trained run")
+    parser.add_argument("--checkpoint", type=Path, help="Checkpoint in the public PhyGRec format")
     parser.add_argument("--variant", choices=VARIANTS, help="Use the checkpoint selected during ablation training")
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     parser.add_argument("--structure", action="store_true", help="Also score physical-cell annotation and clustering")

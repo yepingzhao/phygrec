@@ -187,7 +187,7 @@ class PhyGRecModule(LightningModule):
         if saved["ablation"] != self.hparams.ablation:
             raise ValueError("Checkpoint ablation does not match the configured model")
         if checkpoint.get("phygrec_checkpoint_version") != CHECKPOINT_VERSION:
-            raise ValueError("Checkpoint must be trained with the public PhyGRec implementation")
+            raise ValueError("Checkpoint format version does not match the public PhyGRec implementation")
         self.optimizer_update_count.fill_(int(checkpoint["optimizer_update_count"]))
         self._ema = {
             name: value.clone()
@@ -231,7 +231,7 @@ class PhyGRecModule(LightningModule):
 
     @classmethod
     def load_from_checkpoint(cls, checkpoint_path: str | Path, map_location="cpu"):
-        """Load a checkpoint trained with the public implementation."""
+        """Load a checkpoint in the public PhyGRec format."""
         checkpoint = torch.load(checkpoint_path, map_location=map_location, weights_only=True)
         model = cls(**release_hyperparameters(checkpoint['hyper_parameters']))
         model.on_load_checkpoint(checkpoint)

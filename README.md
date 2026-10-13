@@ -213,7 +213,12 @@ Baselines load `best.pt` from each run directory.
 Shared PhyGRec runs should retain their selected checkpoint, `best.json` and
 referenced validation report with the same paths under `runs/`.
 
-Pretrained runs will be released after retraining with this implementation.
+Converted main and LOCO inference runs retain the original experiment weights
+and EMA. Each includes `conversion.json` with source hashes and
+`inference_comparison.json` with the full-test comparison against the original
+implementation. The original validation selection is preserved, and the selected
+checkpoint is re-evaluated with this code. These runs omit optimizer state;
+start a new training run with the configurations above.
 
 ## Training protocol
 

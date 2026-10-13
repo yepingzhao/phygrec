@@ -47,7 +47,7 @@ def test_exploration_model_checkpoint_is_rejected():
         release_hyperparameters({"learned_preconditioner": True, "graph_corrector": True})
     model = PhyGRecModule()
     checkpoint = {"hyper_parameters": dict(model.hparams), "state_dict": model.state_dict()}
-    with pytest.raises(ValueError, match="trained with the public PhyGRec"):
+    with pytest.raises(ValueError, match="Checkpoint format version"):
         model.on_load_checkpoint(checkpoint)
 
 
