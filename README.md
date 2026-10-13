@@ -67,16 +67,16 @@ All experiments use seeds `20260816`, `20260817` and `20260818`.
 
 | Experiment | Command | Training runs |
 | --- | --- | ---: |
-| Main | `python scripts/reproduce.py --experiment main` | 3 |
-| Receiver-LOCO (A9, L7, NA) | `python scripts/reproduce.py --experiment loco` | 9 |
-| Full model and three removals | `python scripts/reproduce.py --experiment ablation` | 12 |
-| All of the above, sharing the full-model runs | `python scripts/reproduce.py --experiment all` | 21 |
+| Main | `python scripts/main.py --experiment main` | 3 |
+| Receiver-LOCO (A9, L7, NA) | `python scripts/main.py --experiment loco` | 9 |
+| Full model and three removals | `python scripts/main.py --experiment ablation` | 12 |
+| All of the above, sharing the full-model runs | `python scripts/main.py --experiment all` | 21 |
 
 Use `--seeds 20260816` for one seed or `--dry-run` to inspect a plan without
 training or evaluating:
 
 ```bash
-python scripts/reproduce.py --experiment all --seeds 20260816 --dry-run
+python scripts/main.py --experiment all --seeds 20260816 --dry-run
 ```
 
 The ablation configurations retain all settings of the remaining components:
@@ -119,7 +119,7 @@ entry point:
 
 ```bash
 python -m pip install -e '.[structure]'
-python scripts/reproduce.py --experiment main --structure
+python scripts/main.py --experiment main --structure
 python scripts/baselines.py reproduce --method all --experiment loco --structure
 ```
 
@@ -246,7 +246,7 @@ tests/                    # Model, protocol and evaluation checks
 
 `models/` contains the numerical method without training or evaluation dependencies.
 The main method and baselines share `evaluation/`, which scores supplied model
-instances. `scripts/evaluate.py` loads PhyGRec checkpoints, and `scripts/reproduce.py`
+instances. `scripts/evaluate.py` loads PhyGRec checkpoints, and `scripts/main.py`
 runs training and test scoring. The callback in `training/validation.py` selects
 the best checkpoint during training; `evaluation/results.py` summarizes seeds
 and folds.

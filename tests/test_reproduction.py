@@ -2,7 +2,7 @@
 
 import pytest
 
-from reproduce import run
+from main import run
 from phygrec.evaluation.results import EXPRESSION_METRICS, summarize_results
 
 

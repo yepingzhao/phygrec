@@ -6,7 +6,7 @@ import pytest
 pytest.importorskip("scanpy", reason="Install the structure extra for downstream scoring tests")
 pytest.importorskip("leidenalg", reason="Install the structure extra for downstream scoring tests")
 
-from reproduce import run
+from main import run
 from phygrec.evaluation.results import EXPRESSION_METRICS, summarize_results
 from phygrec.evaluation.structure import PhysicalCellAccumulator, load_reference
 from phygrec.evaluation.results import STRUCTURE_METRICS
