@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import platform
 from collections import defaultdict
 from pathlib import Path
 
@@ -14,7 +15,7 @@ from phygrec.data.shared_scene_graphs import SharedSceneGraphDataset, pack_scene
 from phygrec.models import build_compliant_model_input
 from phygrec import FOLDS, ROOT
 from phygrec.data import benchmark_directory
-from phygrec.utils import normalized_log, sha256_file
+from phygrec.utils import deterministic_inference, normalized_log, package_versions, sha256_file
 
 
 class ExpressionMetricAccumulator:
@@ -122,12 +123,14 @@ def evaluate_validation(module, store_root: Path, *, device: torch.device,
     }
 
 
+@deterministic_inference()
 def evaluate_model(model, split: str, seed: int, device_name: str, *,
                    structure: bool = False, batch_size: int = 6, baseline: bool = False) -> dict:
     device = torch.device(device_name)
     dataset = SharedSceneGraphDataset(benchmark_directory(split) / "test.h5")
     loader = DataLoader(dataset, batch_size=batch_size, shuffle=False,
-                        collate_fn=pack_scene_graphs, num_workers=0)
+                        collate_fn=pack_scene_graphs, num_workers=0,
+                        generator=torch.Generator().manual_seed(seed))
     overall = ExpressionMetricAccumulator()
     labels_seen: set[str] = set()
     scenes_seen: set[str] = set()
@@ -175,6 +178,13 @@ def evaluate_model(model, split: str, seed: int, device_name: str, *,
         "input_count_mae": scores["input_raw_mae"],
         "input_log_mae": scores["input_profile_mae"],
         "input_relative_l1": scores["input_raw_l1"],
+        "evaluation": {
+            "protocol": "deterministic_fp32_v1", "batch_size": batch_size,
+            "device": str(device),
+            "accelerator": torch.cuda.get_device_name(device) if device.type == "cuda" else "cpu",
+            "python": platform.python_version(),
+            "packages": package_versions("torch", "torch-geometric", "numpy", "h5py"),
+        },
     }
     if cells is not None:
         from phygrec.evaluation.scoring import score_cells

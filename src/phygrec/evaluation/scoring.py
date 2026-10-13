@@ -12,7 +12,7 @@ import tempfile
 import numpy as np
 
 from phygrec import DATA, SPLITS, VARIANTS
-from phygrec.utils import sha256_file
+from phygrec.utils import package_versions, sha256_file, single_threaded_scoring
 
 
 RESOURCES = DATA / "structure"
@@ -96,31 +96,40 @@ def evaluate_cells(cells: dict, split: str) -> dict:
     )
     from phygrec.evaluation.clustering import clustering_metrics, independent_pca
 
-    reference, metadata = load_reference(split, cells["genes"])
-    if not np.array_equal(cells["ids"], reference["ids"]):
-        raise ValueError("Structure identities/order differ from frozen Reference")
-    clean = np.ascontiguousarray(cells["clean"], dtype=np.float32)
-    if hashlib.sha256(clean.tobytes()).hexdigest() != metadata["clean_sha256"]:
-        raise ValueError("Structure Reference expression changed")
-    scaler, labels, encoded, marker_indices, markers = annotation_protocol(clean, cells["genes"])
-    scores = {}
-    for state, key in (("reference", "clean"), ("mixed", "mixed"), ("prediction", "prediction")):
-        matrix = np.asarray(cells[key], dtype=np.float32)
-        if matrix.shape != clean.shape or not np.isfinite(matrix).all() or matrix.min() < -1e-5:
-            raise ValueError(f"Invalid structure expression: {state}")
-        matrix = np.maximum(matrix, 0)
-        if np.any(matrix.sum(axis=1, dtype=np.float64) <= 0):
-            raise ValueError(f"Zero-library structure expression: {state}")
-        record = annotation_metric_record(matrix, scaler=scaler, reference_labels=labels,
-                                         encoded_reference=encoded, marker_indices=marker_indices)
-        if state == "reference":
-            record["macro_average_precision"] = None
-        scores[state] = {**record, **clustering_metrics(independent_pca(matrix), reference["clusters"])}
-    return {"physical_cells": len(clean), "genes": clean.shape[1],
-            "aggregation": "equal_raw_mean_by_physical_identity_per_training_seed",
-            "class_order": list(CLASS_ORDER), "marker_genes_used": markers,
-            "reference_labels_sha256": metadata["labels_sha256"],
-            "reference_expression_sha256": metadata["clean_sha256"], "states": scores}
+    with single_threaded_scoring():
+        reference, metadata = load_reference(split, cells["genes"])
+        if not np.array_equal(cells["ids"], reference["ids"]):
+            raise ValueError("Structure identities/order differ from frozen Reference")
+        clean = np.ascontiguousarray(cells["clean"], dtype=np.float32)
+        if hashlib.sha256(clean.tobytes()).hexdigest() != metadata["clean_sha256"]:
+            raise ValueError("Structure Reference expression changed")
+        scaler, labels, encoded, marker_indices, markers = annotation_protocol(clean, cells["genes"])
+        scores = {}
+        for state, key in (("reference", "clean"), ("mixed", "mixed"), ("prediction", "prediction")):
+            matrix = np.asarray(cells[key], dtype=np.float32)
+            if matrix.shape != clean.shape or not np.isfinite(matrix).all() or matrix.min() < -1e-5:
+                raise ValueError(f"Invalid structure expression: {state}")
+            matrix = np.maximum(matrix, 0)
+            if np.any(matrix.sum(axis=1, dtype=np.float64) <= 0):
+                raise ValueError(f"Zero-library structure expression: {state}")
+            record = annotation_metric_record(matrix, scaler=scaler, reference_labels=labels,
+                                             encoded_reference=encoded, marker_indices=marker_indices)
+            if state == "reference":
+                record["macro_average_precision"] = None
+            scores[state] = {**record, **clustering_metrics(independent_pca(matrix), reference["clusters"])}
+        return {"physical_cells": len(clean), "genes": clean.shape[1],
+                "aggregation": "equal_raw_mean_by_physical_identity_per_training_seed",
+                "class_order": list(CLASS_ORDER), "marker_genes_used": markers,
+                "reference_labels_sha256": metadata["labels_sha256"],
+                "reference_expression_sha256": metadata["clean_sha256"],
+                "prediction_expression_sha256": hashlib.sha256(
+                    np.ascontiguousarray(cells["prediction"], dtype=np.float32).tobytes()).hexdigest(),
+                "evaluation": {
+                    "numerical_threads": 1,
+                    "packages": package_versions("numpy", "scipy", "scikit-learn", "scanpy", "anndata",
+                                                 "numba", "llvmlite", "pynndescent", "umap-learn",
+                                                 "igraph", "leidenalg", "threadpoolctl"),
+                }, "states": scores}
 
 
 def summarize_results(results: list[dict]) -> dict:

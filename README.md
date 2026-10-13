@@ -20,11 +20,11 @@ The PhyGRec training configurations use one GPU. Install a PyTorch build for you
 accelerator, then run the following from the repository root:
 
 ```bash
-python -m pip install -e .
+python -m pip install -e . -c environment.txt
 ```
 
 Use the editable installation above with benchmark files in `data/`.
-[environment.txt](environment.txt) records the tested runtime;
+[environment.txt](environment.txt) pins the tested runtime packages as pip constraints;
 [pyproject.toml](pyproject.toml) declares package dependencies.
 
 ### Prepare the benchmark
@@ -132,7 +132,7 @@ Install the optional dependencies and add `--structure` to an experiment or
 individual evaluation command:
 
 ```bash
-python -m pip install -e '.[structure]'
+python -m pip install -e '.[structure]' -c environment.txt
 python scripts/main.py --experiment main --structure
 python scripts/baselines.py reproduce --method all --experiment loco --structure
 ```
@@ -158,6 +158,13 @@ remain in expression evaluation.
 Evaluation uses the cohorts, gene order and Reference partitions in
 `data/structure/`. Scoring runs in a separate process with one-thread settings
 and verifies resource and aggregated Reference-expression hashes.
+
+Evaluation uses deterministic CUDA algorithms, FP32 matrix multiplication and
+one numerical thread. PCA, neighbor search and Leiden use the fixed paper seeds.
+Results record package versions and the aggregated prediction hash. Repeat
+evaluations on the same hardware with the constrained environment above;
+changing hardware or numerical-library versions can change floating-point values
+and clustering partitions.
 
 ### Results and aggregation
 
