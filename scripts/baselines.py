@@ -10,7 +10,7 @@ import torch
 
 from phygrec.baselines.runner import METHODS, train, evaluate
 from phygrec import ROOT, SEEDS, SPLITS
-from phygrec.evaluation.results import summarize_results
+from phygrec.evaluation.scoring import summarize_results
 
 
 def main() -> None:

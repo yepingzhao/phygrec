@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    import numpy as np
     import torch
 
 
@@ -33,3 +34,13 @@ def normalized_log(raw: torch.Tensor) -> torch.Tensor:
     raw = raw.clamp_min(0.0)
     total = raw.sum(dim=1).clamp_min(1e-6)
     return torch.log1p(raw * (1e4 / total).unsqueeze(-1))
+
+
+def normalize_log1p(matrix: np.ndarray) -> np.ndarray:
+    """Float32 library-size normalization for cell annotation and clustering."""
+    import numpy as np
+
+    values = np.clip(np.asarray(matrix, dtype=np.float32), 0.0, None)
+    library_size = values.sum(axis=1, keepdims=True)
+    scale = np.divide(1e4, library_size, out=np.zeros_like(library_size, dtype=np.float32), where=library_size > 0)
+    return np.log1p(values * scale).astype(np.float32, copy=False)

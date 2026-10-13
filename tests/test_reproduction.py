@@ -3,7 +3,7 @@
 import pytest
 
 from main import run
-from phygrec.evaluation.results import EXPRESSION_METRICS, summarize_results
+from phygrec.evaluation.scoring import EXPRESSION_METRICS, summarize_results
 
 
 def row(split, seed, value):

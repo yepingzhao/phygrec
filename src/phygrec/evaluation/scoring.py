@@ -1,4 +1,4 @@
-"""Aggregate receiver observations against the frozen physical-cell cohorts."""
+"""Aggregate physical cells, run scoring and summarize folds and training seeds."""
 
 import argparse
 import hashlib
@@ -11,11 +11,22 @@ import tempfile
 
 import numpy as np
 
+from phygrec import DATA, SPLITS, VARIANTS
 from phygrec.utils import sha256_file
-from phygrec import DATA, SPLITS
 
 
 RESOURCES = DATA / "structure"
+
+
+EXPRESSION_METRICS = ("count_mae", "log_mae", "relative_l1", "count_rmse", "log_rmse", "relative_l2")
+
+
+STRUCTURE_METRICS = (
+    "accuracy", "macro_precision", "balanced_accuracy", "macro_f1", "mcc",
+    "cohen_kappa", "macro_average_precision", "source_agreement_ari",
+    "source_agreement_nmi", "leiden_stability_ari", "frozen_label_silhouette_20pc",
+    "leiden_clusters",
+)
 
 
 def load_reference(split: str, genes: np.ndarray) -> tuple[dict, dict]:
@@ -72,7 +83,7 @@ def score_cells(cells: dict, split: str) -> dict:
         path = Path(directory) / "cells.npz"
         np.savez_compressed(path, **cells)
         completed = subprocess.run(
-            [sys.executable, "-m", "phygrec.evaluation.structure", "--split", split, "--cells", str(path)],
+            [sys.executable, "-m", "phygrec.evaluation.scoring", "--split", split, "--cells", str(path)],
             env=environment, capture_output=True, text=True, check=True,
         )
     return json.loads(completed.stdout)
@@ -80,10 +91,10 @@ def score_cells(cells: dict, split: str) -> dict:
 
 def evaluate_cells(cells: dict, split: str) -> dict:
     """Score only the frozen nonzero Reference cohort, after prediction."""
-    from phygrec.evaluation.structure_metrics import (
+    from phygrec.evaluation.annotation import (
         CLASS_ORDER, annotation_metric_record, annotation_protocol,
-        clustering_metrics, independent_pca,
     )
+    from phygrec.evaluation.clustering import clustering_metrics, independent_pca
 
     reference, metadata = load_reference(split, cells["genes"])
     if not np.array_equal(cells["ids"], reference["ids"]):
@@ -110,6 +121,71 @@ def evaluate_cells(cells: dict, split: str) -> dict:
             "class_order": list(CLASS_ORDER), "marker_genes_used": markers,
             "reference_labels_sha256": metadata["labels_sha256"],
             "reference_expression_sha256": metadata["clean_sha256"], "states": scores}
+
+
+def summarize_results(results: list[dict]) -> dict:
+    """Use sample SD across seeds and equal fold weights within each LOCO seed."""
+    groups = {}
+    has_structure = ["structure" in row for row in results]
+    if any(has_structure) and not all(has_structure):
+        raise ValueError("Structure results must cover every run in the summary")
+    loco = {}
+    identities = set()
+    for result in results:
+        identity = (result["split"], result["seed"], result.get("variant"))
+        split, _, variant = identity
+        if split not in SPLITS or (variant is not None and
+                                   (split != "main" or variant not in VARIANTS)):
+            raise ValueError(f"Unpublished result identity: {identity}")
+        if identity in identities:
+            raise ValueError(f"Duplicate result: {identity}")
+        identities.add(identity)
+        if result["split"] != "main":
+            loco.setdefault(result["seed"], {})[result["split"]] = result
+        else:
+            group = result.get("variant") or "main"
+            groups.setdefault(group, []).append(result)
+    if loco:
+        groups["loco"] = []
+        for seed, folds in sorted(loco.items()):
+            if set(folds) != {"a9", "l7", "na"}:
+                raise ValueError(f"LOCO seed {seed} requires all three folds")
+            groups["loco"].append({
+                "seed": seed,
+                **{metric: float(np.mean([folds[fold][metric] for fold in ("a9", "l7", "na")]))
+                   for metric in EXPRESSION_METRICS},
+            })
+            if all(has_structure):
+                groups["loco"][-1]["structure"] = {"states": {
+                    state: {metric: float(np.mean([folds[fold]["structure"]["states"][state][metric]
+                                                   for fold in ("a9", "l7", "na")]))
+                            for metric in STRUCTURE_METRICS
+                            if not (state == "reference" and metric == "macro_average_precision")}
+                    for state in ("reference", "mixed", "prediction")}}
+    summary = {}
+    for group, rows in sorted(groups.items()):
+        rows = sorted(rows, key=lambda row: row["seed"])
+        summary[group] = {
+            "seeds": [row["seed"] for row in rows],
+            "n_seeds": len(rows),
+            "metrics": {
+                metric: {
+                    "mean": float(np.mean([row[metric] for row in rows])),
+                    "sample_sd": float(np.std([row[metric] for row in rows], ddof=1)) if len(rows) > 1 else None,
+                }
+                for metric in EXPRESSION_METRICS
+            },
+        }
+        if all(has_structure):
+            summary[group]["structure"] = {
+                state: {metric: {
+                    "mean": float(np.mean([row["structure"]["states"][state][metric] for row in rows])),
+                    "sample_sd": (float(np.std([row["structure"]["states"][state][metric] for row in rows], ddof=1))
+                                  if state == "prediction" and len(rows) > 1 else None),
+                } for metric in STRUCTURE_METRICS
+                    if not (state == "reference" and metric == "macro_average_precision")}
+                for state in ("reference", "mixed", "prediction")}
+    return summary
 
 
 def main() -> None:

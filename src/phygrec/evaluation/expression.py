@@ -133,7 +133,7 @@ def evaluate_model(model, split: str, seed: int, device_name: str, *,
     scenes_seen: set[str] = set()
     cells = None
     if structure:
-        from phygrec.evaluation.structure import PhysicalCellAccumulator
+        from phygrec.evaluation.scoring import PhysicalCellAccumulator
         cells = PhysicalCellAccumulator(split, dataset.genes)
     with torch.inference_mode():
         for cpu in loader:
@@ -177,6 +177,6 @@ def evaluate_model(model, split: str, seed: int, device_name: str, *,
         "input_relative_l1": scores["input_raw_l1"],
     }
     if cells is not None:
-        from phygrec.evaluation.structure import score_cells
+        from phygrec.evaluation.scoring import score_cells
         result["structure"] = score_cells(cells.means(), split)
     return result

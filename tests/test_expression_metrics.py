@@ -6,6 +6,32 @@ import torch
 from phygrec.evaluation.expression import ExpressionMetricAccumulator
 
 
+def test_scoring_imports_without_optional_annotation_and_clustering_packages():
+    import os
+    from pathlib import Path
+    import subprocess
+    import sys
+    import textwrap
+
+    code = textwrap.dedent("""
+        import importlib.abc
+        import sys
+
+        class NoScoringPackages(importlib.abc.MetaPathFinder):
+            def find_spec(self, fullname, path=None, target=None):
+                if fullname.split('.')[0] in {'anndata', 'scanpy', 'sklearn', 'leidenalg'}:
+                    raise ModuleNotFoundError(fullname)
+
+        sys.meta_path.insert(0, NoScoringPackages())
+        from phygrec.evaluation.scoring import PhysicalCellAccumulator, summarize_results
+        assert callable(PhysicalCellAccumulator)
+        assert summarize_results([]) == {}
+    """)
+    environment = dict(os.environ, PYTHONPATH=str(Path(__file__).resolve().parents[1] / "src"))
+    subprocess.run([sys.executable, "-c", code], env=environment,
+                   check=True, capture_output=True, text=True)
+
+
 def test_receiver_weighting_and_rmse_are_independent_of_batch_partition():
     clean = torch.tensor([[1., 2.], [3., 4.], [2., 6.]])
     prediction = clean + torch.tensor([[0., 0.], [1., -1.], [2., 0.]])

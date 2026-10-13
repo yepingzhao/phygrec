@@ -10,7 +10,7 @@ import sys
 
 
 from phygrec import DATA, ROOT, SEEDS, VARIANTS
-from phygrec.evaluation.results import summarize_results
+from phygrec.evaluation.scoring import summarize_results
 
 
 def experiment_runs(experiment: str) -> list[tuple[str, str | None]]:

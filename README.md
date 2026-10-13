@@ -248,14 +248,16 @@ tests/                    # Model, protocol and evaluation checks
 The main method and baselines share `evaluation/`, which scores supplied model
 instances. `scripts/evaluate.py` loads PhyGRec checkpoints, and `scripts/main.py`
 runs training and test scoring. The callback in `training/validation.py` selects
-the best checkpoint during training; `evaluation/results.py` summarizes seeds
+the best checkpoint during training; `evaluation/scoring.py` summarizes seeds
 and folds.
 Within `baselines/`, `runner.py` keeps fixed model construction, training,
 validation selection and test execution together. Shared circle geometry lives
 in `models/operators.py`. Training losses and checkpoint validation live with the
-Lightning module; expression metrics live with their evaluation loop. Clustering
-calculations stay in `evaluation/structure_metrics.py` so optional dependencies
-load only inside the isolated scoring process.
+Lightning module. Within `evaluation/`, `expression.py` owns expression metrics
+and validation/test loops, `annotation.py` owns cell-type annotation, and
+`clustering.py` owns PCA/Leiden scoring. `scoring.py` combines physical-cell
+aggregation, scoring dispatch and fold/seed summaries. Annotation and clustering
+modules load only inside the isolated scoring process.
 
 Repository and companion-data paths follow the editable installation layout shown
 above. Published ablation scores and original parameter counts are retained in the
