@@ -21,33 +21,16 @@ accelerator, then run the following from the repository root:
 python -m pip install -e .
 ```
 
-The editable installation and sibling data directory below are required by the
+The editable installation and repository data directory below are required by the
 repository's path conventions. [environment.txt](environment.txt) records the
 tested runtime; [pyproject.toml](pyproject.toml) declares package dependencies.
 
 ### Prepare the benchmark
 
-Obtain the final benchmark files separately and place `phygrec-data/` beside the
-repository:
-
-```text
-phygrec/
-phygrec-data/
-  MANIFEST.json
-  benchmark/
-    main/        # train.h5, val.h5, test.h5, genes.txt
-    loco/
-      fold_a9/   # train.h5, val.h5, test.h5, genes.txt
-      fold_l7/   # train.h5, val.h5, test.h5, genes.txt
-      fold_na/   # train.h5, val.h5, test.h5, genes.txt
-  structure/     # Frozen cohorts and Reference partitions for cell evaluation
-    main.npz
-    a9.npz
-    l7.npz
-    na.npz
-    manifest.json
-  results/ablation_expression.json
-```
+Place the separately distributed benchmark files in this repository's `data/`
+directory. See [data/readme.md](data/readme.md) for the file layout, split definitions
+and evaluation resources. The main split should be at
+`data/benchmark/main/{train.h5,val.h5,test.h5,genes.txt}`.
 
 Verify manifest hashes, gene order and split isolation:
 
@@ -177,7 +160,7 @@ remain in expression evaluation.
   on at most 4,000 cells. Leiden variation and training-seed variation are
   recorded separately; Reference and Mixed scores are point estimates.
 
-Cohorts, gene order and partitions come from `../phygrec-data/structure/`.
+Cohorts, gene order and partitions come from `data/structure/`.
 Scoring validates resource and aggregated Reference-expression hashes and runs
 in a separate process with one-thread settings. Reference labels are used only
 for evaluation.
@@ -208,7 +191,7 @@ The experiment entry points also provide `--evaluate-only` with these inputs:
 
 | Experiment | Expected checkpoint source |
 | --- | --- |
-| PhyGRec main / LOCO | `../phygrec-data/checkpoints/{main,a9,l7,na}/seedSEED.ckpt` |
+| PhyGRec main / LOCO | `data/checkpoints/{main,a9,l7,na}/seedSEED.ckpt` |
 | PhyGRec ablations | Locally selected ablation checkpoints, plus the main checkpoints above |
 | Baselines | `runs/baselines/METHOD/SPLIT/seedSEED/best.pt` |
 
@@ -254,6 +237,7 @@ the earliest checkpoint with the highest recovery score is selected.
 ## Code structure
 
 ```text
+data/                     # Prepared benchmark and evaluation resources (see data/readme.md)
 configs/                  # Fixed main, LOCO, ablation and baseline settings
 scripts/
   main.py                 # PhyGRec experiment orchestration
@@ -278,8 +262,8 @@ tests/                    # Model, protocol and evaluation checks
 The main method and baselines share evaluation functions. Training selects
 checkpoints; scripts coordinate experiments; `evaluation/scoring.py` aggregates
 cells and summarizes folds and seeds. Optional annotation and clustering modules
-load inside the isolated scoring process. Benchmark resources live in the
-sibling `phygrec-data/` directory.
+load inside the isolated scoring process. Benchmark resources live in
+`data/`; `src/phygrec/data/` contains the Python data-loading code.
 
 ### Tests
 

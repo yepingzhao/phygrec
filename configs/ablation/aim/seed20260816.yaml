@@ -9,7 +9,7 @@ data:
   num_workers: 4
   pin_memory: true
   persistent_workers: true
-  shared_scene_store: ../phygrec-data/benchmark/main/train.h5
+  shared_scene_store: data/benchmark/main/train.h5
 trainer:
   accelerator: gpu
   devices: 1
@@ -35,7 +35,7 @@ trainer:
     init_args:
       run_name: phygrec_aim_seed20260816
       output_root: runs/ablation/aim/seed20260816/val
-      store_root: ../phygrec-data/benchmark/main
+      store_root: data/benchmark/main
       interval_epochs: 10
       steps_per_epoch: 61
       workers: 4

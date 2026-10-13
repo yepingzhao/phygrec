@@ -5,7 +5,7 @@ from typing import Literal
 
 
 ROOT = Path(__file__).resolve().parents[2]
-DATA = ROOT.parent / "phygrec-data"
+DATA = ROOT / "data"
 SEEDS = (20260816, 20260817, 20260818)
 SPLITS = ("main", "a9", "l7", "na")
 Ablation = Literal["none", "rb", "aim", "gcc"]

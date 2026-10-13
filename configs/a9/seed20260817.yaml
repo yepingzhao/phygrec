@@ -10,7 +10,7 @@ data:
   num_workers: 4
   pin_memory: true
   persistent_workers: true
-  shared_scene_store: ../phygrec-data/benchmark/loco/fold_a9/train.h5
+  shared_scene_store: data/benchmark/loco/fold_a9/train.h5
 trainer:
   accelerator: gpu
   devices: 1
@@ -36,7 +36,7 @@ trainer:
     init_args:
       run_name: phygrec_a9_seed20260817
       output_root: runs/a9/seed20260817/val
-      store_root: ../phygrec-data/benchmark/loco/fold_a9
+      store_root: data/benchmark/loco/fold_a9
       interval_epochs: 10
       steps_per_epoch: 21
       workers: 4

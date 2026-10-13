@@ -6,3 +6,7 @@ build/
 dist/
 runs/
 .venv/
+
+# Prepared data and checkpoints are distributed separately.
+/data/*
+!/data/readme.md
