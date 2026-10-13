@@ -200,14 +200,14 @@ within each run directory:
 ```text
 runs/main/seed20260816/
   logs/                     # CSV training logs
-  checkpoints/              # Training checkpoints
+  checkpoints/
+    epoch_010.ckpt          # Checkpoint saved at each validation epoch
   val/
     best.json               # Selected checkpoint and validation report paths
     val_epoch_010.json      # Per-validation scores
-    checkpoints/
-      epoch_010.ckpt        # Validation checkpoint snapshots
 ```
 
+Validation saves one checkpoint every 10 epochs in `checkpoints/`.
 Evaluation reads `val/best.json` and loads the checkpoint it identifies.
 Baselines load `best.pt` from each run directory.
 Shared PhyGRec runs should retain their selected checkpoint, `best.json` and

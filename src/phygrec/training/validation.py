@@ -102,7 +102,8 @@ class PeriodicSharedSceneValidationCallback(Callback):
         if completed_epochs % self.interval_epochs != 0:
             return
         score_path = self.run_root / f"val_epoch_{completed_epochs:03d}.json"
-        checkpoint_dir = self.run_root / "checkpoints"
+        self.run_root.mkdir(parents=True, exist_ok=True)
+        checkpoint_dir = self.run_root.parent / "checkpoints"
         checkpoint_dir.mkdir(parents=True, exist_ok=True)
         snapshot = checkpoint_dir / f"epoch_{completed_epochs:03d}.ckpt"
         if snapshot.exists() or score_path.exists():

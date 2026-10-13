@@ -37,6 +37,7 @@ def test_validation_records_best_checkpoint_and_preserves_it_on_resume(tmp_path,
         selected = validation.load_best_checkpoint(split, 20260816, tmp_path, variant=variant)
         assert callback.run_root == tmp_path / f"runs/{group}/seed20260816/val"
         assert (callback.run_root / "best.json").is_file()
+        assert (tmp_path / selected["checkpoint"]).parent == callback.run_root.parent / "checkpoints"
         assert selected["selected_epoch"] == expected
         assert selected["val_combined_recovery"] == (.8 if epoch == 10 else .9)
         assert module.training

@@ -16,6 +16,7 @@ trainer:
   devices: 1
   max_steps: -1
   max_epochs: 100
+  enable_checkpointing: false
   deterministic: true
   benchmark: false
   limit_val_batches: 0
@@ -23,15 +24,6 @@ trainer:
   log_every_n_steps: 1
   default_root_dir: runs/main/seed20260816/training
   callbacks:
-  - class_path: lightning.pytorch.callbacks.ModelCheckpoint
-    init_args:
-      dirpath: runs/main/seed20260816/checkpoints
-      filename: step-{step:05d}
-      monitor: null
-      save_top_k: 1
-      save_last: true
-      every_n_train_steps: 6100
-      save_on_train_epoch_end: false
   - class_path: phygrec.training.validation.PeriodicSharedSceneValidationCallback
     init_args:
       run_name: phygrec_full_seed20260816

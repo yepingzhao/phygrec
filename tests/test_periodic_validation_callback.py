@@ -13,7 +13,7 @@ import phygrec.training.validation as periodic_val
 @pytest.mark.parametrize("updates", [61, 21])
 def test_update_audit_uses_protocol_count(updates: int) -> None:
     callback = PeriodicSharedSceneValidationCallback(
-        run_name="audit", output_root="runs/audit", store_root="data",
+        run_name="audit", output_root="runs/audit/val", store_root="data",
         interval_epochs=2, steps_per_epoch=updates,
     )
     trainer = SimpleNamespace(current_epoch=0, global_step=updates)
@@ -30,7 +30,7 @@ def test_checkpoint_audit_records_file_digest(tmp_path, monkeypatch) -> None:
     torch.save({"optimizer_update_count": 61, "global_step": 122,
                 "epoch": 0}, path)
     callback = PeriodicSharedSceneValidationCallback(
-        run_name="audit", output_root="runs/audit", store_root="data",
+        run_name="audit", output_root="runs/audit/val", store_root="data",
     )
     report = callback._checkpoint_audit(path, completed_epochs=1, expected_step=61)
     assert report["sha256"] == hashlib.sha256(path.read_bytes()).hexdigest()
@@ -42,13 +42,14 @@ def test_checkpoint_audit_records_file_digest(tmp_path, monkeypatch) -> None:
 def test_sealed_val_point_cannot_be_reused_from_matching_live_weights(tmp_path, monkeypatch):
     monkeypatch.setattr(periodic_val, "REPOSITORY_ROOT", tmp_path)
     callback = PeriodicSharedSceneValidationCallback(
-        run_name="audit", output_root="runs/audit", store_root="data",
+        run_name="audit", output_root="runs/audit/val", store_root="data",
         interval_epochs=1, steps_per_epoch=1,
     )
-    checkpoint = callback.run_root / "checkpoints/epoch_001.ckpt"
+    checkpoint = callback.run_root.parent / "checkpoints/epoch_001.ckpt"
     checkpoint.parent.mkdir(parents=True)
     state = {"weight": torch.tensor([1.0])}
     torch.save({"state_dict": state, "ema": {"weight": torch.tensor([2.0])}}, checkpoint)
+    callback.run_root.mkdir(parents=True)
     (callback.run_root / "val_epoch_001.json").write_text("{}")
     # Matching live weights do not prove that EMA, data or the sealed score match.
     module = SimpleNamespace(optimizer_update_count=torch.tensor(1), state_dict=lambda: state)
