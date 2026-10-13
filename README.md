@@ -1,10 +1,12 @@
 # PhyGRec
 
-Physics-guided graph recovery for spatial transcriptomic expression.
+PhyGRec recovers spatial transcriptomic expression by combining physical
+backprojection, adaptive modulation and graph-context correction.
 
-This repository provides the paper's main method, receiver-LOCO experiments,
-three component-removal ablations, and seven comparison baselines. All methods
-share expression, cell-type annotation and clustering evaluation.
+This repository provides the implementation and configurations for the paper's
+main experiments, receiver-LOCO evaluation, three component ablations and seven
+comparison baselines, with shared expression, cell-type annotation and clustering
+evaluation.
 
 [Setup](#setup) · [Experiments](#experiments) · [Evaluation](#evaluation) ·
 [Training protocol](#training-protocol) · [Code structure](#code-structure)
@@ -21,9 +23,9 @@ accelerator, then run the following from the repository root:
 python -m pip install -e .
 ```
 
-The editable installation and repository data directory below are required by the
-repository's path conventions. [environment.txt](environment.txt) records the
-tested runtime; [pyproject.toml](pyproject.toml) declares package dependencies.
+Use the editable installation above with benchmark files in `data/`.
+[environment.txt](environment.txt) records the tested runtime;
+[pyproject.toml](pyproject.toml) declares package dependencies.
 
 ### Prepare the benchmark
 
@@ -38,9 +40,8 @@ Verify manifest hashes, gene order and split isolation:
 python scripts/verify_release.py
 ```
 
-The benchmark contains mixing scenes and Reference expression targets. Model
-inputs use mixed expression, receiver/candidate indices, distances and masks.
-Data construction is outside the scope of this prepared-data release.
+The prepared benchmark contains mixing scenes and Reference expression targets.
+Model inputs use mixed expression, receiver/candidate indices, distances and masks.
 
 ## Experiments
 
@@ -75,8 +76,8 @@ Ablations retain the settings of the remaining components:
 | [aim](configs/ablation/aim/) | Adaptive gain and momentum |
 | [gcc](configs/ablation/gcc/) | Graph-context correction |
 
-Start repeated training attempts in a fresh output directory; existing validation
-records are never overwritten.
+Use a fresh output directory for each repeated training attempt to preserve its
+validation records.
 
 ### Seven comparison baselines
 
@@ -160,10 +161,9 @@ remain in expression evaluation.
   on at most 4,000 cells. Leiden variation and training-seed variation are
   recorded separately; Reference and Mixed scores are point estimates.
 
-Cohorts, gene order and partitions come from `data/structure/`.
-Scoring validates resource and aggregated Reference-expression hashes and runs
-in a separate process with one-thread settings. Reference labels are used only
-for evaluation.
+Evaluation uses the cohorts, gene order and Reference partitions in
+`data/structure/`. Scoring runs in a separate process with one-thread settings
+and verifies resource and aggregated Reference-expression hashes.
 
 ### Results and aggregation
 
@@ -185,9 +185,9 @@ averages the three folds equally within each seed.
 
 ### Public checkpoints
 
-**Public checkpoints will be released after retraining with the finalized code.**
-For now, train locally and use the individual evaluation commands above.
-The experiment entry points also provide `--evaluate-only` with these inputs:
+Public checkpoints are pending retraining with this implementation. The commands
+above train models and evaluate their validation-selected checkpoints.
+For `--evaluate-only`, the experiment entry points use these checkpoint locations:
 
 | Experiment | Expected checkpoint source |
 | --- | --- |
@@ -217,9 +217,9 @@ correction before nonnegative projection.
 
 Validation selection maximizes the mean of Log-MAE and relative-L1 recovery
 relative to Mixed, breaking ties by earliest epoch. Validation and test use EMA
-parameters; test data do not enter selection. Circle-total normalization uses
-the detached median of receiver and valid donor-slot totals across the packed
-batch. The validation callback updates `best.json` beside its `val_epoch_*.json`
+parameters, with test scoring performed after checkpoint selection.
+Circle-total normalization uses the detached median of receiver and valid
+donor-slot totals across the packed batch. The validation callback updates `best.json` beside its `val_epoch_*.json`
 records whenever the score improves.
 
 ### Baselines
@@ -277,4 +277,4 @@ dependencies.
 
 ## License
 
-A code license has not yet been selected.
+Code license: pending selection.

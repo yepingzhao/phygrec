@@ -1,8 +1,9 @@
 # PhyGRec benchmark data
 
-Place the prepared benchmark in this directory, under the repository root.
-Run the commands below from `phygrec/`. Data files are distributed separately;
-Git tracks only this README in `data/`.
+This directory holds the prepared benchmark for PhyGRec: the main split, three
+receiver-LOCO folds, and resources for cell-type annotation and clustering.
+Extract the separately distributed data here and run commands from `phygrec/`.
+The repository tracks this README; data files are excluded from Git.
 
 ## Directory layout
 
@@ -28,7 +29,7 @@ data/
     manifest.json
   results/
     ablation_expression.json
-  checkpoints/  # Reserved for checkpoints retrained with the final public code
+  checkpoints/  # Public checkpoints (pending release)
 ```
 
 Extract the data contents directly here, so that `data/MANIFEST.json` and
@@ -54,9 +55,8 @@ baselines use these same prepared splits.
 The HDF5 stores contain measured source profiles, simulated mixtures, spatial
 candidate graphs, masks and Reference expression targets. Model inputs are mixed
 expression, receiver/candidate indices, distances and masks. Reference expression
-supports training losses and evaluation; test targets are used only after training
-and validation checkpoint selection. Raw assay files, segmentation inputs and
-exploratory intermediate datasets are outside this release.
+supports training losses and evaluation. Test scoring follows training and
+validation checkpoint selection.
 
 ## Annotation and clustering resources
 
@@ -92,23 +92,21 @@ python scripts/main.py --experiment main --seeds 20260816 --dry-run
 python scripts/main.py --experiment main --seeds 20260816
 ```
 
-Verification checks every file listed in `MANIFEST.json`, including SHA-256 hashes,
-HDF5 schema, gene order, split identity isolation and LOCO chip exclusion. Manifest
-paths are relative to this directory. A partial download cannot pass full release
-verification. If a manifest lists checkpoints, those files are also required by
-the verifier.
+Provide every file listed in `MANIFEST.json`, including any listed checkpoints.
+Manifest paths are relative to this directory. Verification checks SHA-256 hashes,
+HDF5 schema, gene order, split identity isolation and LOCO chip exclusion.
 
-`results/ablation_expression.json` records previously reported ablation scores,
-selected epochs and original parameter counts. Those counts describe the original
-training artifacts, rather than the current implementation. New experiment scores
-are written to `runs/results/`, outside this data directory.
+`results/ablation_expression.json` contains the reported ablation scores, selected
+epochs and parameter counts for the original experiment checkpoints. The current
+full-model parameter count is documented in the
+[repository README](../README.md#training-protocol). New experiment scores are
+saved to `runs/results/`.
 
 ## Checkpoints
 
-Public checkpoints will be released after retraining with the finalized public
-code. Existing checkpoints from earlier experiments are not validated for this
-implementation. Train from the supplied configurations and evaluate the checkpoint
-selected during training:
+Public checkpoints are pending retraining with this implementation. Use
+checkpoints trained with the supplied code and configurations. After training,
+evaluate the validation-selected checkpoint:
 
 ```bash
 python scripts/evaluate.py --split main --seed 20260816
